@@ -1,4 +1,4 @@
-# diceroller-bot
+# Diceroller Bot (aka Giorgio)
 A Discord Bot that rolls dice for you
 
 #### Disclaimer
