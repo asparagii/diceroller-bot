@@ -22,7 +22,7 @@ func createReply(userID string, message string) (string, error) {
 	if !ok {
 		return "", InvalidExpression
 	}
-	resultMessage := fmt.Sprintf("<@!%s> %v = `%d`", userID, result, result.total())
+	resultMessage := fmt.Sprintf("<@!%s> `%s` = %v = `%d`", userID, expression, result, result.total())
 	if len(resultMessage) > 1900 {
 		return fmt.Sprintf("<@!%s> (...) = `%d`", userID, result.total()), nil
 	}
