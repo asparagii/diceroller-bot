@@ -3,12 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/bwmarrin/discordgo"
+	"math/rand"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
-
-	"github.com/bwmarrin/discordgo"
+	"time"
 )
 
 func init() {
@@ -19,6 +20,7 @@ func init() {
 var token string
 
 func main() {
+	rand.Seed(time.Now().UTC().UnixNano())
 	if token == "" {
 		fmt.Println("No token provided. Please run: diceroller -t <bot-token>")
 		return
@@ -56,7 +58,10 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	if strings.HasPrefix(m.Content, "!r ") {
-		response := createReply(m.Author.ID, m.Content)
+		response, errorMessage := createReply(m.Author.ID, m.Content)
+		if errorMessage != nil {
+			response = fmt.Sprintf("<@!%s> Invalid expression", m.Author.ID)
+		}
 		mess, err := s.ChannelMessageSend(m.ChannelID, response)
 		if err != nil {
 			fmt.Println("Unable to send message to channel: ", err)
