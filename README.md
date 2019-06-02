@@ -23,8 +23,8 @@ If you want a new feature or want to give some advice, file a new issue.
 
 ## Usage
 ```
-git clone https://github.com/MicheleLambertucci/diceroller-bot
-cd diceroller-bot
+go get github.com/MicheleLambertucci/diceroller-bot
+cd $GOPATH/github.com/MicheleLambertucci/diceroller-bot
 go build
 ./diceroller-bot -t <your-long-bot-token>
 ```
