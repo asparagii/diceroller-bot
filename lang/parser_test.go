@@ -1,7 +1,6 @@
 package lang
 
 import (
-	"fmt"
 	"math/rand"
 	"strings"
 	"testing"
@@ -82,11 +81,10 @@ func TestExprPrecedence(t *testing.T) {
 
 func TestParser(t *testing.T) {
 	input := "13+5*2-2"
-	val, descr, err := Parse(input)
+	val, _, err := Parse(input)
 
 	assert(t, err == nil, "Expected no error, got '%v'", err)
 	assert(t, val == 21, "Expected `val` to equal 21, got %v", val)
-	fmt.Println(descr)
 }
 
 func TestParserUnexpectedToken(t *testing.T) {

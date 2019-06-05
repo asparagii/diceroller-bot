@@ -71,27 +71,35 @@ func term(proxy *Nexter) (int, string, error) {
 }
 
 func atom(proxy *Nexter) (int, string, error) {
-	var lvalue int
-	var lrepr string
-	var err error
-	if proxy.Peek().t == NUMBER {
+	switch proxy.Peek().t {
+	case NUMBER:
 		ltoken := proxy.Pop()
-		lvalue, err = strconv.Atoi(ltoken.value)
+		lvalue, err := strconv.Atoi(ltoken.value)
 		if err != nil {
 			return 0, "", fmt.Errorf("Error while parsing a number")
 		}
-		lrepr = fmt.Sprintf("%v", lvalue)
-	} else {
-		lvalue = 1
-		lrepr = "1"
-	}
+		lrepr := fmt.Sprintf("%v", lvalue)
 
-	if proxy.Peek().t != DICE {
-		return lvalue, lrepr, nil
-	} else {
+		if proxy.Peek().t == DICE {
+			proxy.Pop()
+			if proxy.Peek().t != NUMBER {
+				return lvalue, lrepr, fmt.Errorf("Expected number, found %s", proxy.Peek().value)
+			}
+			rtoken := proxy.Pop()
+			rvalue, err := strconv.Atoi(rtoken.value)
+			if err != nil {
+				return 0, "", fmt.Errorf("Error while parsing a number")
+			}
+			result, repr := roll(lvalue, rvalue)
+			return result, repr, nil
+		} else {
+			return lvalue, lrepr, nil
+		}
+	case DICE:
+		lvalue := 1
 		proxy.Pop()
 		if proxy.Peek().t != NUMBER {
-			return lvalue, lrepr, fmt.Errorf("Expected number, found %s", proxy.Peek().value)
+			return 0, "", fmt.Errorf("Expected number, found %s", proxy.Peek().value)
 		}
 		rtoken := proxy.Pop()
 		rvalue, err := strconv.Atoi(rtoken.value)
@@ -100,6 +108,8 @@ func atom(proxy *Nexter) (int, string, error) {
 		}
 		result, repr := roll(lvalue, rvalue)
 		return result, repr, nil
+	default:
+		return 0, "", fmt.Errorf("Unexpected token %v", proxy.Peek().value)
 	}
 }
 
