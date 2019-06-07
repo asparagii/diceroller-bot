@@ -199,10 +199,15 @@ func roll(number, size, keep int, formatted bool) (int, string, error) {
 	sum := 0
 	for _, v := range results[number-keep : number] {
 		sum += v
+		singleRepr := fmt.Sprintf("%v", v)
+		if v == size {
+			singleRepr = fmt.Sprintf("**%s**", singleRepr)
+		}
+
 		if len(repr) > 0 {
-			repr = fmt.Sprintf("%s+%v", repr, v)
+			repr = fmt.Sprintf("%s+%s", repr, singleRepr)
 		} else {
-			repr = fmt.Sprintf("%v", v)
+			repr = fmt.Sprintf("%s", singleRepr)
 		}
 	}
 
