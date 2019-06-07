@@ -185,18 +185,26 @@ func roll(number, size, keep int, formatted bool) (int, string, error) {
 	sorted := sort.IntSlice(results)
 	sort.Sort(sorted)
 
-	sum := 0
 	repr := ""
-	for i, v := range sorted {
-		if i >= number-keep {
-			sum += v
+	if number-keep > 0 {
+		for _, v := range results[:number-keep] {
+			if len(repr) > 0 {
+				repr = fmt.Sprintf("%s+%v", repr, v)
+			} else {
+				repr = fmt.Sprintf("%v", v)
+			}
 		}
-		// Add visualization
+		repr = fmt.Sprintf("~~%s~~", repr)
+	}
+	sum := 0
+	for _, v := range results[number-keep : number] {
+		sum += v
 		if len(repr) > 0 {
 			repr = fmt.Sprintf("%s+%v", repr, v)
 		} else {
 			repr = fmt.Sprintf("%v", v)
 		}
 	}
+
 	return sum, fmt.Sprintf("(%s)", repr), nil
 }
