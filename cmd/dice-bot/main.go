@@ -58,10 +58,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	if strings.HasPrefix(m.Content, "!r ") {
-		response, errorMessage := createReply(m.Author.ID, m.Content)
-		if errorMessage != nil {
-			response = fmt.Sprintf("<@!%s> Invalid expression", m.Author.ID)
-		}
+		response := createReply(m.Author.ID, m.Content)
 		mess, err := s.ChannelMessageSend(m.ChannelID, response)
 		if err != nil {
 			fmt.Println("Unable to send message to channel: ", err)
