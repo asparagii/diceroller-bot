@@ -19,6 +19,9 @@ const (
 	SUB
 	MUL
 	DICE
+	KEEP
+	RPAREN
+	LPAREN
 	INVALID
 )
 
@@ -38,6 +41,12 @@ func (t TokenType) String() string {
 		return "MUL"
 	case EOF:
 		return "EOF"
+	case KEEP:
+		return "KEEP"
+	case RPAREN:
+		return "RPAREN"
+	case LPAREN:
+		return "LPAREN"
 	default:
 		return "<ERROR: Unexpected token type>"
 	}
@@ -132,6 +141,15 @@ func lexNeutral(l *Lexer) StateFn {
 	case ch == 'd':
 		popEmitSingle(DICE, l)
 		return lexNeutral
+	case ch == 'k':
+		popEmitSingle(KEEP, l)
+		return lexNeutral
+	case ch == '(':
+		popEmitSingle(LPAREN, l)
+		return lexNeutral
+	case ch == ')':
+		popEmitSingle(RPAREN, l)
+		return lexNeutral
 	default:
 		return lexUnexpected
 	}
@@ -158,7 +176,6 @@ func popEmitSingle(t TokenType, l *Lexer) {
 	l.Emit(token)
 }
 
-// TODO Start run
 func run(l *Lexer) {
 	for state := lexNeutral; state != nil; {
 		state = state(l)

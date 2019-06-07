@@ -42,6 +42,25 @@ func TestAtomDice(t *testing.T) {
 	assert(t, val > 0, "Expected `val` to be greater than zero, got '%v'", val)
 }
 
+func TestAtomDiceKeep(t *testing.T) {
+	rand.Seed(int64(0))
+	channel := make(chan Token)
+	proxy := &Nexter{token: channel}
+
+	go func() {
+		channel <- Token{t: NUMBER, value: "10"}
+		channel <- Token{t: DICE}
+		channel <- Token{t: NUMBER, value: "8"}
+		channel <- Token{t: KEEP}
+		channel <- Token{t: NUMBER, value: "4"}
+		channel <- Token{t: EOF}
+	}()
+
+	proxy.Init()
+	_, _, err := atom(proxy)
+	assert(t, err == nil, "Expected no error, got '%v'", err)
+}
+
 func TestTerm(t *testing.T) {
 	rand.Seed(int64(0))
 	channel := make(chan Token)
@@ -91,4 +110,11 @@ func TestParserUnexpectedToken(t *testing.T) {
 	input := "13*+"
 	_, _, err := Parse(input)
 	assert(t, err != nil, "Expected error, got no error")
+}
+
+func TestParserKeepDice(t *testing.T) {
+	input := "4d8k3"
+	val, _, err := Parse(input)
+	assert(t, err == nil, "Expected no error, got '%v'", err)
+	assert(t, val > 0, "Expected value to be greater than 0, but it was not")
 }

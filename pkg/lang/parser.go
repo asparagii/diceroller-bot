@@ -3,6 +3,7 @@ package lang
 import (
 	"fmt"
 	"math/rand"
+	"sort"
 	"strconv"
 )
 
@@ -13,7 +14,12 @@ func Parse(expression string) (int, string, error) {
 
 	// Read first value
 	proxy.Init()
-	return expr(&proxy)
+	value, description, err := expr(&proxy)
+	if proxy.Peek().t != EOF {
+		return 0, "", fmt.Errorf("Unexpected end of message")
+	} else {
+		return value, description, err
+	}
 }
 
 func expr(proxy *Nexter) (int, string, error) {
@@ -38,10 +44,8 @@ func expr(proxy *Nexter) (int, string, error) {
 				return lvalue, ldescr, err
 			}
 			lvalue, ldescr = lvalue-rvalue, fmt.Sprintf("%s-%s", ldescr, rdescr)
-		case EOF:
-			return lvalue, ldescr, nil
 		default:
-			return lvalue, ldescr, fmt.Errorf("Expected operator or `EOF`, found '%v'", proxy.Peek())
+			return lvalue, ldescr, nil
 		}
 	}
 	return lvalue, ldescr, fmt.Errorf("Unexpected end of the parser")
@@ -71,80 +75,128 @@ func term(proxy *Nexter) (int, string, error) {
 }
 
 func atom(proxy *Nexter) (int, string, error) {
-	switch proxy.Peek().t {
-	case NUMBER:
-		ltoken := proxy.Pop()
-		lvalue, err := strconv.Atoi(ltoken.value)
-		if err != nil {
-			return 0, "", fmt.Errorf("Error while parsing a number")
-		}
-		lrepr := fmt.Sprintf("%v", lvalue)
-
-		if proxy.Peek().t == DICE {
-			proxy.Pop()
-			if proxy.Peek().t != NUMBER {
-				return lvalue, lrepr, fmt.Errorf("Expected number, found %s", proxy.Peek().value)
-			}
-			rtoken := proxy.Pop()
-			rvalue, err := strconv.Atoi(rtoken.value)
-			if err != nil {
-				return 0, "", fmt.Errorf("Error while parsing a number")
-			}
-			result, repr := roll(lvalue, rvalue)
-			return result, repr, nil
-		} else {
-			return lvalue, lrepr, nil
-		}
-	case DICE:
-		lvalue := 1
+	if proxy.Peek().t == LPAREN {
 		proxy.Pop()
-		if proxy.Peek().t != NUMBER {
-			return 0, "", fmt.Errorf("Expected number, found %s", proxy.Peek().value)
-		}
-		rtoken := proxy.Pop()
-		rvalue, err := strconv.Atoi(rtoken.value)
+		val, descr, err := expr(proxy)
 		if err != nil {
-			return 0, "", fmt.Errorf("Error while parsing a number")
+			return 0, "", err
 		}
-		result, repr := roll(lvalue, rvalue)
-		return result, repr, nil
-	default:
-		return 0, "", fmt.Errorf("Unexpected token %v", proxy.Peek().value)
+		if proxy.Peek().t != RPAREN {
+			return 0, "", fmt.Errorf("Expected ')', found '%s'", proxy.Peek().value)
+		}
+		proxy.Pop()
+		return val, fmt.Sprintf("(%s)", descr), nil
+	} else {
+		var size *int = nil
+		if proxy.Peek().t == NUMBER {
+			val, _, err := number(proxy)
+			if err != nil {
+				return 0, "", err
+			}
+			size = new(int)
+			*size = val
+		}
+
+		if proxy.Peek().t != DICE {
+			if size == nil {
+				return 0, "", fmt.Errorf("Expected number or dice expression, got '%v'", proxy.Peek().value)
+			} else {
+				return *size, fmt.Sprintf("%v", *size), nil
+			}
+		}
+
+		if size == nil {
+			size = new(int)
+			*size = 1
+		}
+
+		number, _, err := dice(proxy)
+		if err != nil {
+			return 0, "", err
+		}
+
+		if proxy.Peek().t != KEEP {
+			return roll(*size, number, number, false)
+		}
+
+		keep, _, err := keep(proxy)
+		if err != nil {
+			return 0, "", err
+		}
+
+		return roll(*size, number, keep, false)
 	}
 }
 
-func roll(number, size int) (int, string) {
-	sum := 0
-	repr := ""
+func number(proxy *Nexter) (int, string, error) {
+	if proxy.Peek().t != NUMBER {
+		return 0, "", fmt.Errorf("Expected number, got '%v'", proxy.Peek().value)
+	}
+	value, err := strconv.Atoi(proxy.Pop().value)
+	if err != nil {
+		return 0, "", err
+	}
+	return value, fmt.Sprintf("%v", value), nil
+}
+
+func dice(proxy *Nexter) (int, string, error) {
+	if proxy.Peek().t != DICE {
+		return 0, "", fmt.Errorf("Expected 'd', got '%v'", proxy.Peek().value)
+	}
+	proxy.Pop()
+	if proxy.Peek().t != NUMBER {
+		return 0, "", fmt.Errorf("Expected number, found %s", proxy.Peek().value)
+	}
+	rtoken := proxy.Pop()
+	rvalue, err := strconv.Atoi(rtoken.value)
+	if err != nil {
+		return 0, "", fmt.Errorf("Error while parsing a number")
+	}
+	return rvalue, "", nil
+}
+
+func keep(proxy *Nexter) (int, string, error) {
+	if proxy.Peek().t != KEEP {
+		return 0, "", fmt.Errorf("Expected k, found '%s'", proxy.Peek().value)
+	}
+	proxy.Pop()
+	if proxy.Peek().t != NUMBER {
+		return 0, "", fmt.Errorf("Expected number, found %s", proxy.Peek().value)
+	}
+	ktoken := proxy.Pop()
+	kvalue, err := strconv.Atoi(ktoken.value)
+	if err != nil {
+		return 0, "", fmt.Errorf("Error while parsing keep number '%s'", ktoken.value)
+	}
+	return kvalue, "", nil
+}
+
+// Test this shit
+func roll(number, size, keep int, formatted bool) (int, string, error) {
+	if size < 1 {
+		return 0, "", fmt.Errorf("Unexpected size '%v'", size)
+	}
+
+	results := make([]int, number)
 	for i := 0; i < number; i++ {
 		tmp := rand.Intn(size) + 1
-		sum += tmp
-		if len(repr) == 0 {
-			repr = fmt.Sprintf("%v", tmp)
+		results[i] = tmp
+	}
+	sorted := sort.IntSlice(results)
+	sort.Sort(sorted)
+
+	sum := 0
+	repr := ""
+	for i, v := range sorted {
+		if i >= number-keep {
+			sum += v
+		}
+		// Add visualization
+		if len(repr) > 0 {
+			repr = fmt.Sprintf("%s+%v", repr, v)
 		} else {
-			repr = fmt.Sprintf("%s+%v", repr, tmp)
+			repr = fmt.Sprintf("%v", v)
 		}
 	}
-	return sum, fmt.Sprintf("(%s)", repr)
-}
-
-type Nexter struct {
-	token    chan Token
-	internal Token
-}
-
-func (n *Nexter) Init() {
-	n.internal = <-n.token
-}
-
-func (n *Nexter) Pop() Token {
-	tmp := n.internal
-	if n.internal.t != EOF {
-		n.internal = <-n.token
-	}
-	return tmp
-}
-
-func (n *Nexter) Peek() Token {
-	return n.internal
+	return sum, fmt.Sprintf("(%s)", repr), nil
 }
