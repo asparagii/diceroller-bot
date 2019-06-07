@@ -1,12 +1,7 @@
-# Diceroller Bot (aka Giorgio)
+# Diceroller Bot 
 A Discord Bot that rolls dice for you
 
-#### Disclaimer
-I started this project with the main goal of learning some Go.
-This is my first time with Go, thus the code is (at this point in time) a big mess.
-I look forward to improving the code, especially the parsing part.
-
-If you want a new feature or want to give some advice, file a new issue.
+If you want a new feature or want to give some advice, please open an new issue. It will be very much appreciated.
 
 ## Commands
 `!r 1d20` - Roll a d20
@@ -19,15 +14,32 @@ If you want a new feature or want to give some advice, file a new issue.
 
 `!r 5d20k4` - Roll five d20 but the keep only the highest 4
 
-`!r 99d100k1+40d4-3d2-4` - You got it
+`!r (4d8+3)*3d2k1` - Roll four d8, add three and multiply the result for three d2 (keeping only one)
 
-## Usage
+`!r (8d12k1+40)*(1-(2+9d4)-3d2)-4` - You got it
+
+## Installation
+
 ```
 go get github.com/MicheleLambertucci/diceroller-bot
-cd $GOPATH/github.com/MicheleLambertucci/diceroller-bot
-go build
-./diceroller-bot -t <your-long-bot-token>
+cd $GOPATH/src/github.com/MicheleLambertucci/diceroller-bot
+cd cmd/dice-bot && go install && cd -
+cd ../dice-cli && go install && cd -
 ```
+
+Both `dice-bot` and `dice-cli` will be installed in your $GOPATH/bin directory. Add the folder to your PATH if you want to launch the programs from anywhere.
+
+### Bot
+To start the bot use
+```
+dice-bot -t <your-long-bot-token>
+```
+
+### Cli
+```
+dice-cli
+```
+
 
 If you want to try the bot without deploying your own, you can use my instance.
 
