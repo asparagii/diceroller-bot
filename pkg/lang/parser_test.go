@@ -16,10 +16,12 @@ func TestAtomSingleNumber(t *testing.T) {
 	}()
 
 	proxy.Init()
-	val, descr, err := atom(proxy)
+	val, err := atom(proxy)
 	assert(t, err == nil, "Expected no error, got %v", err)
-	assert(t, val == 12, "Expected 12, got %v", val)
-	assert(t, strings.Compare("12", descr) == 0, "Expected '12', got %v", descr)
+	num, ok := val.(Number)
+	assert(t, ok, "Type assertion failed")
+	assert(t, num.V() == 12, "Expected 12, got %v", num.V())
+	assert(t, strings.Compare("12", val.String()) == 0, "Expected '12', got %v", val)
 }
 
 func TestAtomDice(t *testing.T) {
@@ -35,11 +37,13 @@ func TestAtomDice(t *testing.T) {
 	}()
 
 	proxy.Init()
-	val, descr, err := atom(proxy)
+	val, err := atom(proxy)
 	assert(t, err == nil, "Expected no error, got '%v'", err)
-	assert(t, strings.Count(descr, "+") == 9, "Expected 9 `+` runes, got %v", strings.Count(descr, "+"))
-	assert(t, descr[0] == '(' && descr[len(descr)-1] == ')', "Expected `(` and `)`, found `%v` and `%v`", descr[0], descr[len(descr)-1])
-	assert(t, val > 0, "Expected `val` to be greater than zero, got '%v'", val)
+	assert(t, strings.Count(val.String(), "+") == 9, "Expected 9 `+` runes, got %v", strings.Count(val.String(), "+"))
+	assert(t, val.String()[0] == '(' && val.String()[len(val.String())-1] == ')', "Expected `(` and `)`, found `%v` and `%v`", val.String()[0], val.String()[len(val.String())-1])
+	num, ok := val.(Number)
+	assert(t, ok, "Type assertion failed")
+	assert(t, num.V() > 0, "Expected `val` to be greater than zero, got '%v'", num)
 }
 
 func TestAtomDiceKeep(t *testing.T) {
@@ -57,8 +61,10 @@ func TestAtomDiceKeep(t *testing.T) {
 	}()
 
 	proxy.Init()
-	_, _, err := atom(proxy)
+	val, err := atom(proxy)
 	assert(t, err == nil, "Expected no error, got '%v'", err)
+	_, ok := val.(Number)
+	assert(t, ok, "Type assertion failed")
 }
 
 func TestTerm(t *testing.T) {
@@ -74,9 +80,11 @@ func TestTerm(t *testing.T) {
 	}()
 
 	proxy.Init()
-	val, _, err := term(proxy)
+	val, err := term(proxy)
 	assert(t, err == nil, "Expected no error, got '%v'", err)
-	assert(t, val == 42, "Expected `val` to equal %v, got %v", 42, val)
+	num, ok := val.(Number)
+	assert(t, ok, "Type assertion failed")
+	assert(t, num.V() == 42, "Expected `val` to equal %v, got %v", 42, num)
 }
 
 func TestExprPrecedence(t *testing.T) {
@@ -93,28 +101,34 @@ func TestExprPrecedence(t *testing.T) {
 	}()
 
 	proxy.Init()
-	val, _, err := expr(proxy)
+	val, err := expr(proxy)
 	assert(t, err == nil, "Expected no error, got '%v'", err)
-	assert(t, val == 48, "Expected `val` to equal 48, got %v", val)
+	num, ok := val.(Number)
+	assert(t, ok, "Type assertion failed")
+	assert(t, num.V() == 48, "Expected `val` to equal 48, got %v", num.V())
 }
 
 func TestParser(t *testing.T) {
 	input := "13+5*2-2"
-	val, _, err := Parse(input)
+	val, err := Parse(input)
 
 	assert(t, err == nil, "Expected no error, got '%v'", err)
-	assert(t, val == 21, "Expected `val` to equal 21, got %v", val)
+	num, ok := val.(Number)
+	assert(t, ok, "Type assertion failed")
+	assert(t, num.V() == 21, "Expected `val` to equal 21, got %v", num.V())
 }
 
 func TestParserUnexpectedToken(t *testing.T) {
 	input := "13*+"
-	_, _, err := Parse(input)
+	_, err := Parse(input)
 	assert(t, err != nil, "Expected error, got no error")
 }
 
 func TestParserKeepDice(t *testing.T) {
 	input := "4d8k3"
-	val, _, err := Parse(input)
+	val, err := Parse(input)
 	assert(t, err == nil, "Expected no error, got '%v'", err)
-	assert(t, val > 0, "Expected value to be greater than 0, but it was not")
+	num, ok := val.(Number)
+	assert(t, ok, "Type assertion failed")
+	assert(t, num.V() > 0, "Expected value to be greater than 0, but it was not")
 }

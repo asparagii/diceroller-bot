@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/MicheleLambertucci/diceroller-bot/pkg/lang"
@@ -15,11 +16,25 @@ func main() {
 		if strings.Compare(expr, "quit") == 0 {
 			break
 		}
-		result, description, err := lang.Parse(expr)
+		result, err := lang.Parse(expr)
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
 		} else {
-			fmt.Printf("%s => %d\n", description, result)
+			if result.Type() == lang.NUMBERVALUE {
+				fmt.Printf("%v => %d\n", cliFormatter(result.String()), result.(lang.Number).V())
+			} else {
+				fmt.Printf("%v\n", result)
+			}
 		}
 	}
+}
+
+func cliFormatter(str string) string {
+	strong := regexp.MustCompile(`\*\*(.+?)\*\*`)
+	discard := regexp.MustCompile(`\~\~(.+?)\~\~`)
+
+	ret := strong.ReplaceAllString(str, "\033[1;33m$1\033[0m")
+	ret = discard.ReplaceAllString(ret, "\033[9m$1\033[0m")
+
+	return ret
 }
