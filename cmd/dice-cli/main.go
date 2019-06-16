@@ -2,29 +2,36 @@ package main
 
 import (
 	"fmt"
+	"github.com/MicheleLambertucci/diceroller-bot/pkg/lang"
+	"github.com/mattn/go-isatty"
+	"math/rand"
+	"os"
 	"regexp"
 	"strings"
-
-	"github.com/MicheleLambertucci/diceroller-bot/pkg/lang"
+	"time"
 )
 
 func main() {
+	rand.Seed(time.Now().UTC().UnixNano())
 	var expr string
-	for true {
-		fmt.Print("> ")
-		fmt.Scanf("%s", &expr)
-		if strings.Compare(expr, "quit") == 0 {
-			break
-		}
-		result, err := lang.Parse(expr)
-		if err != nil {
-			fmt.Printf("Error: %v\n", err)
-		} else {
-			if result.Type() == lang.NUMBERVALUE {
-				fmt.Printf("%v => %d\n", cliFormatter(result.String()), result.(lang.Number).V())
-			} else {
-				fmt.Printf("%v\n", result)
+	if isatty.IsTerminal(os.Stdin.Fd()) {
+		fmt.Println("Welcome to dicelang interactive prompt")
+		fmt.Println("Type 'exit' or 'quit' to exit")
+		for true {
+			fmt.Print("> ")
+			fmt.Scanf("%s", &expr)
+			if strings.Compare(expr, "quit") == 0 || strings.Compare(expr, "exit") == 0 {
+				break
 			}
+			compute(expr)
+		}
+	} else {
+		for true {
+			_, err := fmt.Scanf("%s", &expr)
+			if err != nil {
+				break
+			}
+			compute(expr)
 		}
 	}
 }
@@ -37,4 +44,17 @@ func cliFormatter(str string) string {
 	ret = discard.ReplaceAllString(ret, "\033[9m$1\033[0m")
 
 	return ret
+}
+
+func compute(expr string) {
+	result, err := lang.Parse(expr)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+	} else {
+		if result.Type() == lang.NUMBERVALUE {
+			fmt.Printf("%v => %d\n", cliFormatter(result.String()), result.(lang.Number).V())
+		} else {
+			fmt.Printf("%v\n", result)
+		}
+	}
 }
