@@ -36,11 +36,7 @@ func expr(proxy *Nexter) (Object, error) {
 			if err != nil {
 				return lvalue, err
 			}
-			add, ok := lvalue.methods[ADD]
-			if !ok {
-				return lvalue, fmt.Errorf("Invalid type: %v doesn't have a 'Add' method", lvalue.properties[TYPE])
-			}
-			lvalue, err = add(lvalue, rvalue)
+			lvalue, err = Add(lvalue, rvalue)
 			if err != nil {
 				return lvalue, err
 			}
@@ -50,11 +46,7 @@ func expr(proxy *Nexter) (Object, error) {
 			if err != nil {
 				return lvalue, err
 			}
-			subtract, ok := lvalue.methods[SUBTRACT]
-			if !ok {
-				return lvalue, fmt.Errorf("Invalid type: %v doesn't have a 'Subtract' method", lvalue.properties[TYPE])
-			}
-			lvalue, err = subtract(lvalue, rvalue)
+			lvalue, err = Subtract(lvalue, rvalue)
 			if err != nil {
 				return lvalue, err
 			}
@@ -80,11 +72,7 @@ func term(proxy *Nexter) (Object, error) {
 			if err != nil {
 				return lvalue, err
 			}
-			multiply, ok := lvalue.methods[MULTIPLY]
-			if !ok {
-				return lvalue, fmt.Errorf("Invalid type: %v doesn't have a 'Multiply' method", lvalue.properties[TYPE])
-			}
-			lvalue, err = multiply(lvalue, rvalue)
+			lvalue, err = Multiply(lvalue, rvalue)
 			if err != nil {
 				return lvalue, err
 			}
@@ -99,8 +87,8 @@ func atom(proxy *Nexter) (Object, error) {
 	rvalue, err := literal(proxy)
 	if err != nil {
 		return rvalue, err
-	} else if rvalue.properties[TYPE] != NUMBERVALUE {
-		return rvalue, fmt.Errorf("Expected number, got %v", rvalue.properties[TYPE])
+	} else if rvalue.Type != NUMBERVALUE {
+		return rvalue, fmt.Errorf("Expected number, got %v", rvalue.Type)
 	}
 
 	if proxy.Peek().t != DICE {
@@ -111,21 +99,21 @@ func atom(proxy *Nexter) (Object, error) {
 	lvalue, err := literal(proxy)
 	if err != nil {
 		return lvalue, err
-	} else if rvalue.properties[TYPE] != NUMBERVALUE {
-		return rvalue, fmt.Errorf("Expected number, got %v", rvalue.properties[TYPE])
+	} else if rvalue.Type != NUMBERVALUE {
+		return rvalue, fmt.Errorf("Expected number, got %v", rvalue.Type)
 	}
 	if proxy.Peek().t != KEEP {
-		return roll(rvalue.properties[VALUE].(int), lvalue.properties[VALUE].(int), rvalue.properties[VALUE].(int))
+		return roll(rvalue.Value.(int), lvalue.Value.(int), rvalue.Value.(int))
 	}
 	proxy.Pop()
 	kvalue, err := literal(proxy)
 	if err != nil {
 		return kvalue, err
-	} else if kvalue.properties[TYPE] != NUMBERVALUE {
-		return kvalue, fmt.Errorf("Expected number, got %v", kvalue.properties[TYPE])
+	} else if kvalue.Type != NUMBERVALUE {
+		return kvalue, fmt.Errorf("Expected number, got %v", kvalue.Type)
 	}
 
-	return roll(rvalue.properties[VALUE].(int), lvalue.properties[VALUE].(int), kvalue.properties[VALUE].(int))
+	return roll(rvalue.Value.(int), lvalue.Value.(int), kvalue.Value.(int))
 }
 
 func literal(proxy *Nexter) (Object, error) {
@@ -140,8 +128,8 @@ func literal(proxy *Nexter) (Object, error) {
 			return val, fmt.Errorf("Expected ')', found '%s'", proxy.Peek().value)
 		}
 		proxy.Pop()
-		if val.properties[TYPE] != NUMBERVALUE {
-			return val, fmt.Errorf("Expected number, found %v", val.properties[TYPE])
+		if val.Type != NUMBERVALUE {
+			return val, fmt.Errorf("Expected number, found %v", val.Type)
 		}
 		return val, nil
 	case NUMBER:

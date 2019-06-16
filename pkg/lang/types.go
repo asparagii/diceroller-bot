@@ -1,23 +1,8 @@
 package lang
 
-type Property int
-type Method int
-
-const (
-	VALUE Property = iota
-	TYPE
-)
-
-const (
-	ADD Method = iota
-	SUBTRACT
-	INVERT
-	MULTIPLY
-)
-
 type Object struct {
-	properties map[Property]interface{}
-	methods    map[Method]func(a, b Object) (Object, error)
+	Value interface{}
+	Type  ValueType
 }
 
 type ValueType int
