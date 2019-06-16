@@ -1,44 +1,43 @@
 package lang
 
-import "fmt"
+import (
+	"fmt"
+)
 
-type Number struct {
-	val  int
-	repr string
+func Number(value int) Object {
+	p := make(map[Property]interface{})
+	p[VALUE] = value
+	p[TYPE] = NUMBERVALUE
+
+	m := make(map[Method]func(a, b Object) (Object, error))
+	m[ADD] = AddNumber
+	m[SUBTRACT] = SubtractNumber
+	m[MULTIPLY] = MultiplyNumber
+
+	return Object{properties: p, methods: m}
 }
 
-func (n *Number) Init(val int) {
-	n.val = val
-	n.repr = fmt.Sprintf("%d", val)
-}
-func (n Number) String() string {
-	return n.repr
-}
-func (a Number) Add(b Value) (Value, error) {
-	if b.Type() != NUMBERVALUE {
-		return a, fmt.Errorf("Cannot sum a number with a %v", b.Type())
+func AddNumber(self, other Object) (Object, error) {
+	if other.properties[TYPE] != NUMBERVALUE {
+		return self, fmt.Errorf("Invalid type: can't sum Number with %v", other.properties[TYPE])
 	}
-	repr := fmt.Sprintf("%v+%v", a, b)
-	val := a.V() + b.(Number).V()
-	return Number{val: val, repr: repr}, nil
+	return Number(self.properties[VALUE].(int) + other.properties[VALUE].(int)), nil
 }
-func (n Number) Invert() (Value, error) {
-	return Number{val: -n.V(), repr: fmt.Sprintf("-%v", n)}, nil
-}
-func (a Number) Mul(b Value) (Value, error) {
-	if b.Type() != NUMBERVALUE {
-		return a, fmt.Errorf("Cannot multiply a number with a %v", b.Type())
+
+func SubtractNumber(self, other Object) (Object, error) {
+	if other.properties[TYPE] != NUMBERVALUE {
+		return self, fmt.Errorf("Invalid type: can't subtract Number with %v", other.properties[TYPE])
 	}
-	repr := fmt.Sprintf("%v*%v", a, b)
-	val := a.V() * b.(Number).V()
-	return Number{val: val, repr: repr}, nil
+	return Number(self.properties[VALUE].(int) - other.properties[VALUE].(int)), nil
 }
-func (n Number) Type() ValueType {
-	return NUMBERVALUE
+
+func InvertNumber(self Object) (Object, error) {
+	return Number(self.properties[VALUE].(int)), nil
 }
-func (n Number) V() int {
-	return n.val
-}
-func (n *Number) Surround() {
-	n.repr = fmt.Sprintf("(%s)", n.repr)
+
+func MultiplyNumber(self, other Object) (Object, error) {
+	if other.properties[TYPE] != NUMBERVALUE {
+		return self, fmt.Errorf("Invalid type: can't multiply Number with %v", other.properties[TYPE])
+	}
+	return Number(self.properties[VALUE].(int) * other.properties[VALUE].(int)), nil
 }

@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-func Parse(expression string) (Value, error) {
+func Parse(expression string) (Object, error) {
 	token := Lex(expression)
 
 	proxy := Nexter{token: token}
@@ -22,7 +22,7 @@ func Parse(expression string) (Value, error) {
 	}
 }
 
-func expr(proxy *Nexter) (Value, error) {
+func expr(proxy *Nexter) (Object, error) {
 	lvalue, err := term(proxy)
 	if err != nil {
 		return lvalue, err
@@ -36,7 +36,11 @@ func expr(proxy *Nexter) (Value, error) {
 			if err != nil {
 				return lvalue, err
 			}
-			lvalue, err = lvalue.Add(rvalue)
+			add, ok := lvalue.methods[ADD]
+			if !ok {
+				return lvalue, fmt.Errorf("Invalid type: %v doesn't have a 'Add' method", lvalue.properties[TYPE])
+			}
+			lvalue, err = add(lvalue, rvalue)
 			if err != nil {
 				return lvalue, err
 			}
@@ -46,11 +50,11 @@ func expr(proxy *Nexter) (Value, error) {
 			if err != nil {
 				return lvalue, err
 			}
-			invertedvalue, err := rvalue.Invert()
-			if err != nil {
-				return invertedvalue, err
+			subtract, ok := lvalue.methods[SUBTRACT]
+			if !ok {
+				return lvalue, fmt.Errorf("Invalid type: %v doesn't have a 'Subtract' method", lvalue.properties[TYPE])
 			}
-			lvalue, err = lvalue.Add(invertedvalue)
+			lvalue, err = subtract(lvalue, rvalue)
 			if err != nil {
 				return lvalue, err
 			}
@@ -61,7 +65,7 @@ func expr(proxy *Nexter) (Value, error) {
 	return lvalue, fmt.Errorf("Unexpected end of the parser")
 }
 
-func term(proxy *Nexter) (Value, error) {
+func term(proxy *Nexter) (Object, error) {
 	lvalue, err := atom(proxy)
 
 	if err != nil {
@@ -76,7 +80,11 @@ func term(proxy *Nexter) (Value, error) {
 			if err != nil {
 				return lvalue, err
 			}
-			lvalue, err = lvalue.Mul(rvalue)
+			multiply, ok := lvalue.methods[MULTIPLY]
+			if !ok {
+				return lvalue, fmt.Errorf("Invalid type: %v doesn't have a 'Multiply' method", lvalue.properties[TYPE])
+			}
+			lvalue, err = multiply(lvalue, rvalue)
 			if err != nil {
 				return lvalue, err
 			}
@@ -87,12 +95,12 @@ func term(proxy *Nexter) (Value, error) {
 	return lvalue, fmt.Errorf("Unexpected end of the parser")
 }
 
-func atom(proxy *Nexter) (Value, error) {
+func atom(proxy *Nexter) (Object, error) {
 	rvalue, err := literal(proxy)
 	if err != nil {
 		return rvalue, err
-	} else if rvalue.Type() != NUMBERVALUE {
-		return rvalue, fmt.Errorf("Expected number, got %v", rvalue.Type())
+	} else if rvalue.properties[TYPE] != NUMBERVALUE {
+		return rvalue, fmt.Errorf("Expected number, got %v", rvalue.properties[TYPE])
 	}
 
 	if proxy.Peek().t != DICE {
@@ -103,24 +111,24 @@ func atom(proxy *Nexter) (Value, error) {
 	lvalue, err := literal(proxy)
 	if err != nil {
 		return lvalue, err
-	} else if rvalue.Type() != NUMBERVALUE {
-		return rvalue, fmt.Errorf("Expected number, got %v", rvalue.Type())
+	} else if rvalue.properties[TYPE] != NUMBERVALUE {
+		return rvalue, fmt.Errorf("Expected number, got %v", rvalue.properties[TYPE])
 	}
 	if proxy.Peek().t != KEEP {
-		return roll(rvalue.(Number), lvalue.(Number), rvalue.(Number))
+		return roll(rvalue.properties[VALUE].(int), lvalue.properties[VALUE].(int), rvalue.properties[VALUE].(int))
 	}
 	proxy.Pop()
 	kvalue, err := literal(proxy)
 	if err != nil {
 		return kvalue, err
-	} else if kvalue.Type() != NUMBERVALUE {
-		return kvalue, fmt.Errorf("Expected number, got %v", kvalue.Type())
+	} else if kvalue.properties[TYPE] != NUMBERVALUE {
+		return kvalue, fmt.Errorf("Expected number, got %v", kvalue.properties[TYPE])
 	}
 
-	return roll(rvalue.(Number), lvalue.(Number), kvalue.(Number))
+	return roll(rvalue.properties[VALUE].(int), lvalue.properties[VALUE].(int), kvalue.properties[VALUE].(int))
 }
 
-func literal(proxy *Nexter) (Value, error) {
+func literal(proxy *Nexter) (Object, error) {
 	switch proxy.Peek().t {
 	case LPAREN:
 		proxy.Pop()
@@ -132,48 +140,46 @@ func literal(proxy *Nexter) (Value, error) {
 			return val, fmt.Errorf("Expected ')', found '%s'", proxy.Peek().value)
 		}
 		proxy.Pop()
-		if val.Type() != NUMBERVALUE {
-			return val, fmt.Errorf("Expected number, found %v", val.Type())
+		if val.properties[TYPE] != NUMBERVALUE {
+			return val, fmt.Errorf("Expected number, found %v", val.properties[TYPE])
 		}
-		return Number{val: val.(Number).V(), repr: fmt.Sprintf("(%v)", val)}, nil
+		return val, nil
 	case NUMBER:
 		val, err := number(proxy)
 		return val, err
 	default:
-		return Number{}, fmt.Errorf("Expected number or expression, found '%s'", proxy.Peek().t)
+		return Object{}, fmt.Errorf("Expected number or expression, found '%s'", proxy.Peek().t)
 	}
 
 }
 
-func number(proxy *Nexter) (Number, error) {
+func number(proxy *Nexter) (Object, error) {
 	if proxy.Peek().t != NUMBER {
-		return Number{}, fmt.Errorf("Expected number, got '%v'", proxy.Peek().value)
+		return Object{}, fmt.Errorf("Expected number, got '%v'", proxy.Peek().value)
 	}
 	value, err := strconv.Atoi(proxy.Pop().value)
 	if err != nil {
-		return Number{}, err
+		return Object{}, err
 	}
-	var ret Number
-	ret.Init(value)
-	return ret, nil
+	return Number(value), nil
 }
 
-func roll(number, size, keep Number) (Number, error) {
-	if size.V() < 1 {
-		return number, fmt.Errorf("Unexpected size '%v'", size)
+func roll(number, size, keep int) (Object, error) {
+	if size < 1 {
+		return Object{}, fmt.Errorf("Unexpected size '%v'", size)
 	}
 
-	results := make([]int, number.V())
-	for i := 0; i < number.V(); i++ {
-		tmp := rand.Intn(size.V()) + 1
+	results := make([]int, number)
+	for i := 0; i < number; i++ {
+		tmp := rand.Intn(size) + 1
 		results[i] = tmp
 	}
 	sorted := sort.IntSlice(results)
 	sort.Sort(sorted)
 
 	repr := ""
-	if number.V()-keep.V() > 0 {
-		for _, v := range results[:number.V()-keep.V()] {
+	if number-keep > 0 {
+		for _, v := range results[:number-keep] {
 			if len(repr) > 0 {
 				repr = fmt.Sprintf("%s+%v", repr, v)
 			} else {
@@ -183,14 +189,14 @@ func roll(number, size, keep Number) (Number, error) {
 		repr = fmt.Sprintf("~~%s~~", repr)
 	}
 	sum := 0
-	lowerBound := number.V() - keep.V()
+	lowerBound := number - keep
 	if lowerBound < 0 {
 		lowerBound = 0
 	}
-	for _, v := range results[lowerBound:number.V()] {
+	for _, v := range results[lowerBound:number] {
 		sum += v
 		singleRepr := fmt.Sprintf("%v", v)
-		if v == size.V() {
+		if v == size {
 			singleRepr = fmt.Sprintf("**%s**", singleRepr)
 		}
 
@@ -200,6 +206,6 @@ func roll(number, size, keep Number) (Number, error) {
 			repr = fmt.Sprintf("%s", singleRepr)
 		}
 	}
-
-	return Number{val: sum, repr: fmt.Sprintf("(%s)", repr)}, nil
+	_ = fmt.Sprintf("(%s)", repr)
+	return Number(sum), nil
 }

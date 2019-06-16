@@ -1,11 +1,23 @@
 package lang
 
-type Value interface {
-	String() string
-	Add(Value) (Value, error)
-	Invert() (Value, error)
-	Mul(Value) (Value, error)
-	Type() ValueType
+type Property int
+type Method int
+
+const (
+	VALUE Property = iota
+	TYPE
+)
+
+const (
+	ADD Method = iota
+	SUBTRACT
+	INVERT
+	MULTIPLY
+)
+
+type Object struct {
+	properties map[Property]interface{}
+	methods    map[Method]func(a, b Object) (Object, error)
 }
 
 type ValueType int
@@ -15,16 +27,6 @@ const (
 	BOOLEANVALUE
 	ARRAYVALUE
 )
-
-type Iterable interface {
-	String() string
-	Map(Expression) (Iterable, error)
-	Filter(Expression) (Iterable, error)
-}
-
-type Expression interface {
-	Eval(Value) Value
-}
 
 /*
 type ArrayNumber []Value

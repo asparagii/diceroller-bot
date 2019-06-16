@@ -51,10 +51,10 @@ func compute(expr string) {
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	} else {
-		if result.Type() == lang.NUMBERVALUE {
-			fmt.Printf("%v => %d\n", cliFormatter(result.String()), result.(lang.Number).V())
-		} else {
-			fmt.Printf("%v\n", result)
-		}
+		//	if result.Properties[lang.TYPE] == lang.NUMBERVALUE {
+		//		fmt.Printf("%v => %d\n", cliFormatter(result.String()), result.(lang.Number).V())
+		//	} else {
+		fmt.Printf("%v\n", result)
+		//}
 	}
 }
