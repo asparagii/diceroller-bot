@@ -22,6 +22,10 @@ const (
 	KEEP
 	RPAREN
 	LPAREN
+	RARRAYPAREN
+	LARRAYPAREN
+	LISTSEPARATOR
+	DOLLAR
 	INVALID
 )
 
@@ -47,6 +51,14 @@ func (t TokenType) String() string {
 		return "RPAREN"
 	case LPAREN:
 		return "LPAREN"
+	case RARRAYPAREN:
+		return "RARRAYPAREN"
+	case LARRAYPAREN:
+		return "LARRAYPAREN"
+	case LISTSEPARATOR:
+		return "LISTSEPARATOR"
+	case DOLLAR:
+		return "DOLLAR"
 	default:
 		return "<ERROR: Unexpected token type>"
 	}
@@ -149,6 +161,18 @@ func lexNeutral(l *Lexer) StateFn {
 		return lexNeutral
 	case ch == ')':
 		popEmitSingle(RPAREN, l)
+		return lexNeutral
+	case ch == '[':
+		popEmitSingle(LARRAYPAREN, l)
+		return lexNeutral
+	case ch == ']':
+		popEmitSingle(RARRAYPAREN, l)
+		return lexNeutral
+	case ch == ',':
+		popEmitSingle(LISTSEPARATOR, l)
+		return lexNeutral
+	case ch == '$':
+		popEmitSingle(DOLLAR, l)
 		return lexNeutral
 	default:
 		return lexUnexpected

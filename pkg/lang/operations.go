@@ -2,11 +2,13 @@ package lang
 
 import (
 	"fmt"
+	"math/rand"
+	"sort"
 )
 
-type BinaryOperation func(a, b Object) (Object, error)
-
 type UnaryOperation func(a Object) (Object, error)
+
+type BinaryOperation func(a, b Object) (Object, error)
 
 type TernaryOperation func(a, b, c Object) (Object, error)
 
@@ -48,4 +50,84 @@ func Multiply(a, b Object) (Object, error) {
 		return Object{}, fmt.Errorf("Error: unknown type")
 	}
 	return Object{}, fmt.Errorf("Error: unknown type")
+}
+
+func Roll(number, size Object) (Object, error) {
+	if number.Type != NUMBERVALUE || size.Type != NUMBERVALUE {
+		return Object{}, fmt.Errorf("Wrong type for roll")
+	}
+	if size.Value.(int) < 1 {
+		return Object{}, fmt.Errorf("Unexpected size '%v'", size)
+	}
+
+	results := make([]int, number.Value.(int))
+	for i := 0; i < number.Value.(int); i++ {
+		tmp := rand.Intn(size.Value.(int)) + 1
+		results[i] = tmp
+	}
+
+	sum := 0
+	for _, v := range results {
+		sum += v
+	}
+	return Number(sum), nil
+}
+
+func RollKeep(number, size, keep Object) (Object, error) {
+	if number.Type != NUMBERVALUE || size.Type != NUMBERVALUE || keep.Type != NUMBERVALUE {
+		return Object{}, fmt.Errorf("Wrong type for roll")
+	}
+
+	if size.Value.(int) < 1 {
+		return Object{}, fmt.Errorf("Unexpected size '%v'", size)
+	}
+
+	results := make([]int, number.Value.(int))
+	for i := 0; i < number.Value.(int); i++ {
+		tmp := rand.Intn(size.Value.(int)) + 1
+		results[i] = tmp
+	}
+	sorted := sort.IntSlice(results)
+	sort.Sort(sorted)
+
+	repr := ""
+	if number.Value.(int)-keep.Value.(int) > 0 {
+		for _, v := range results[:number.Value.(int)-keep.Value.(int)] {
+			if len(repr) > 0 {
+				repr = fmt.Sprintf("%s+%v", repr, v)
+			} else {
+				repr = fmt.Sprintf("%v", v)
+			}
+		}
+		repr = fmt.Sprintf("~~%s~~", repr)
+	}
+	sum := 0
+	lowerBound := number.Value.(int) - keep.Value.(int)
+	if lowerBound < 0 {
+		lowerBound = 0
+	}
+	for _, v := range results[lowerBound:number.Value.(int)] {
+		sum += v
+		singleRepr := fmt.Sprintf("%v", v)
+		if v == size.Value.(int) {
+			singleRepr = fmt.Sprintf("**%s**", singleRepr)
+		}
+
+		if len(repr) > 0 {
+			repr = fmt.Sprintf("%s+%s", repr, singleRepr)
+		} else {
+			repr = fmt.Sprintf("%s", singleRepr)
+		}
+	}
+	_ = fmt.Sprintf("(%s)", repr)
+	return Number(sum), nil
+}
+
+func Pipe(a, b Object) (Object, error) {
+	switch a.Type {
+	case ARRAYVALUE:
+		// TODO Add a way to use some kind of local variable ($)
+	default:
+	}
+	return Object{}, fmt.Errorf("Not implemented")
 }

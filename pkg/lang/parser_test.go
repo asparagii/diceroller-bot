@@ -36,7 +36,7 @@ func TestAtomDice(t *testing.T) {
 	}()
 
 	proxy.Init()
-	val, err := atom(proxy)
+	val, err := Parse(proxy)
 	assert(t, err == nil, "Expected no error, got '%v'", err)
 	//assert(t, strings.Count(val.String(), "+") == 9, "Expected 9 `+` runes, got %v", strings.Count(val.String(), "+"))
 	//assert(t, val.String()[0] == '(' && val.String()[len(val.String())-1] == ')', "Expected `(` and `)`, found `%v` and `%v`", val.String()[0], val.String()[len(val.String())-1])
@@ -59,15 +59,13 @@ func TestAtomDiceKeep(t *testing.T) {
 	}()
 
 	proxy.Init()
-	val, err := atom(proxy)
+	val, err := Parse(proxy)
 	assert(t, err == nil, "Expected no error, got '%v'", err)
 	assert(t, val.Type == NUMBERVALUE, "Expected valber, got %v", val.Type)
 }
 
 func TestTerm(t *testing.T) {
 	rand.Seed(int64(0))
-	channel := make(chan Token)
-	proxy := &Nexter{token: channel}
 
 	go func() {
 		channel <- Token{t: NUMBER, value: "6"}
@@ -77,7 +75,7 @@ func TestTerm(t *testing.T) {
 	}()
 
 	proxy.Init()
-	val, err := term(proxy)
+	val, err := Parse("6*7")
 	assert(t, err == nil, "Expected no error, got '%v'", err)
 	assert(t, val.Value.(int) == 42, "Expected `val` to equal %v, got %v", 42, val)
 }
@@ -96,7 +94,7 @@ func TestExprPrecedence(t *testing.T) {
 	}()
 
 	proxy.Init()
-	val, err := expr(proxy)
+	val, err := Parse(proxy)
 	assert(t, err == nil, "Expected no error, got '%v'", err)
 	assert(t, val.Type == NUMBERVALUE, "Expected valber, got %v", val.Type)
 	assert(t, val.Value.(int) == 48, "Expected `val` to equal 48, got %v", val.Value.(int))

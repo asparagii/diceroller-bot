@@ -13,6 +13,14 @@ const (
 	ARRAYVALUE
 )
 
+func Number(value int) Object {
+	return Object{Value: value, Type: NUMBERVALUE}
+}
+
+func Array(elements []Object) Object {
+	return Object{Value: elements, Type: ARRAYVALUE}
+}
+
 /*
 type ArrayNumber []Value
 
