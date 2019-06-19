@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/MicheleLambertucci/diceroller-bot/pkg/lang"
 	"github.com/mattn/go-isatty"
@@ -13,25 +14,26 @@ import (
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
-	var expr string
+	scanner := bufio.NewScanner(os.Stdin)
+	var inputProgram string
 	if isatty.IsTerminal(os.Stdin.Fd()) {
 		fmt.Println("Welcome to dicelang interactive prompt")
 		fmt.Println("Type 'exit' or 'quit' to exit")
 		for true {
 			fmt.Print("> ")
-			fmt.Scanf("%s", &expr)
-			if strings.Compare(expr, "quit") == 0 || strings.Compare(expr, "exit") == 0 {
+			scanner.Scan()
+			inputProgram = scanner.Text()
+
+			if strings.Compare(inputProgram, "quit") == 0 || strings.Compare(inputProgram, "exit") == 0 {
 				break
 			}
-			compute(expr)
+			compute(inputProgram)
 		}
 	} else {
 		for true {
-			_, err := fmt.Scanf("%s", &expr)
-			if err != nil {
-				break
-			}
-			compute(expr)
+			scanner.Scan()
+			inputProgram = scanner.Text()
+			compute(inputProgram)
 		}
 	}
 }

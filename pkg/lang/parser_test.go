@@ -1,5 +1,6 @@
 package lang
 
+/*
 import (
 	"math/rand"
 	//"strings"
@@ -121,4 +122,4 @@ func TestParserKeepDice(t *testing.T) {
 	assert(t, err == nil, "Expected no error, got '%v'", err)
 	assert(t, val.Type == NUMBERVALUE, "Expected valber, got %v", val.Type)
 	assert(t, val.Value.(int) > 0, "Expected value to be greater than 0, but it was not")
-}
+}*/
