@@ -26,6 +26,7 @@ const (
 	LARRAYPAREN
 	LISTSEPARATOR
 	DOLLAR
+	PIPE
 	INVALID
 )
 
@@ -59,6 +60,8 @@ func (t TokenType) String() string {
 		return "LISTSEPARATOR"
 	case DOLLAR:
 		return "DOLLAR"
+	case PIPE:
+		return "PIPE"
 	default:
 		return "<ERROR: Unexpected token type>"
 	}
@@ -173,6 +176,9 @@ func lexNeutral(l *Lexer) StateFn {
 		return lexNeutral
 	case ch == '$':
 		popEmitSingle(DOLLAR, l)
+		return lexNeutral
+	case ch == '|':
+		popEmitSingle(PIPE, l)
 		return lexNeutral
 	default:
 		return lexUnexpected

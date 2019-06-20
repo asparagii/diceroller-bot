@@ -66,6 +66,21 @@ func TestIgnoreWhitespaceInArray(t *testing.T) {
 	Expect(t, <-channel, Token{t: EOF})
 }
 
+func TestPipe(t *testing.T) {
+	channel := Lex("[1,2,3]|$+2")
+	Expect(t, <-channel, Token{t: LARRAYPAREN})
+	Expect(t, <-channel, Token{t: NUMBER, value: "1"})
+	Expect(t, <-channel, Token{t: LISTSEPARATOR})
+	Expect(t, <-channel, Token{t: NUMBER, value: "2"})
+	Expect(t, <-channel, Token{t: LISTSEPARATOR})
+	Expect(t, <-channel, Token{t: NUMBER, value: "3"})
+	Expect(t, <-channel, Token{t: RARRAYPAREN})
+	Expect(t, <-channel, Token{t: PIPE})
+	Expect(t, <-channel, Token{t: DOLLAR})
+	Expect(t, <-channel, Token{t: SUM})
+	Expect(t, <-channel, Token{t: NUMBER, value: "2"})
+}
+
 func Expect(t *testing.T, received, expected Token) {
 	assert(t, received.t == expected.t, fmt.Sprintf("Token type did not match. Expected %v, found %v", expected.t, received.t))
 	assert(t, strings.Compare(expected.value, received.value) == 0, fmt.Sprintf("Token type did not match. Expected %v, found %v", expected.value, received.value))

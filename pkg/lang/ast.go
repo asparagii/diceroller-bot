@@ -2,6 +2,7 @@ package lang
 
 import (
 	"errors"
+	"fmt"
 )
 
 type node interface {
@@ -93,4 +94,44 @@ func (n triNode) evaluate(memory Memory) (Object, error) {
 		return rightVal, err
 	}
 	return n.operation(leftVal, middleVal, rightVal)
+}
+
+type pipeNode struct {
+	left  *node
+	right *node
+}
+
+func PipeNode(lnode, rnode node) *pipeNode {
+	return &pipeNode{
+		left:  &lnode,
+		right: &rnode,
+	}
+}
+
+func (p pipeNode) evaluate(m Memory) (Object, error) {
+	leftResult, err := (*p.left).evaluate(m)
+	if err != nil {
+		return Object{}, err
+	}
+	var newMemory Memory
+	switch leftResult.Type {
+	case NUMBERVALUE:
+		tmpdollar := Object(leftResult)
+		newMemory.dollar = &tmpdollar
+		result, err := (*p.right).evaluate(newMemory)
+		return result, err
+	case ARRAYVALUE:
+		result := make([]Object, len(leftResult.Value.([]Object)))
+		for i, v := range leftResult.Value.([]Object) {
+			newMemory.dollar = &v
+			singleResult, err := (*p.right).evaluate(newMemory)
+			if err != nil {
+				return Object{}, err
+			}
+			result[i] = singleResult
+		}
+		return Array(result), nil
+	default:
+		return Object{}, fmt.Errorf("Unsupported operand of type %v for pipe operation", leftResult.Type)
+	}
 }

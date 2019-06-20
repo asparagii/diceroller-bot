@@ -5,28 +5,53 @@ import (
 	"strconv"
 )
 
-func Parse(expression string) (Object, error) {
+func Start(input string) (Object, error) {
+	ast, err := Parse(input)
+	if err != nil {
+		return Object{}, err
+	}
+	return Interpret(ast)
+}
+
+func Parse(expression string) (node, error) {
 	token := Lex(expression)
 
 	proxy := Nexter{token: token}
 
 	// Read first value
 	proxy.Init()
-	value, err := expr(&proxy)
-	if err != nil {
-		return Object{}, err
+	tree, err := program(&proxy)
+	if proxy.Peek().t != EOF {
+		return tree, fmt.Errorf("Unexpected end of message")
 	}
-	return Interpret(value)
-	//	if proxy.Peek().t != EOF {
-	//		return value, fmt.Errorf("Unexpected end of message")
-	//	} else {
-	//		return value, err
-	//	}
+	return tree, err
 }
 
 func Interpret(tree node) (Object, error) {
 	mem := Memory{dollar: &Object{}}
 	return tree.evaluate(mem)
+}
+
+func program(proxy *Nexter) (node, error) {
+	ret, err := expr(proxy)
+	if err != nil {
+		return ret, err
+	}
+
+	for true {
+		switch proxy.Peek().t {
+		case PIPE:
+			proxy.Pop()
+			right, err := expr(proxy)
+			if err != nil {
+				return right, err
+			}
+			ret = PipeNode(ret, right)
+		default:
+			return ret, nil
+		}
+	}
+	return ret, fmt.Errorf("This shouldn't happen")
 }
 
 func expr(proxy *Nexter) (node, error) {
@@ -55,7 +80,7 @@ func expr(proxy *Nexter) (node, error) {
 			return lvalue, nil
 		}
 	}
-	return lvalue, fmt.Errorf("Unexpected end of the parser")
+	return lvalue, fmt.Errorf("Unexpected end of the message")
 }
 
 func term(proxy *Nexter) (node, error) {
@@ -133,7 +158,7 @@ func literal(proxy *Nexter) (node, error) {
 		return val, err
 	case DOLLAR:
 		proxy.Pop()
-		return dollarNode{}, nil //TODO change
+		return dollarNode{}, nil
 	default:
 		return valueNode{}, fmt.Errorf("Expected number or expression, found '%s'", proxy.Peek().t)
 	}

@@ -49,7 +49,7 @@ func cliFormatter(str string) string {
 }
 
 func compute(expr string) {
-	result, err := lang.Parse(expr)
+	result, err := lang.Start(expr)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	} else {
