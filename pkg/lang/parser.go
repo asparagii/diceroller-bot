@@ -27,11 +27,6 @@ func Parse(expression string) (node, error) {
 	return tree, err
 }
 
-func Interpret(tree node) (Object, error) {
-	mem := Memory{dollar: &Object{}}
-	return tree.evaluate(mem)
-}
-
 func program(proxy *Nexter) (node, error) {
 	ret, err := expr(proxy)
 	if err != nil {
