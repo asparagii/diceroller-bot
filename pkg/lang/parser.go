@@ -28,7 +28,7 @@ func Parse(expression string) (node, error) {
 }
 
 func program(proxy *Nexter) (node, error) {
-	ret, err := expr(proxy)
+	ret, err := comp(proxy)
 	if err != nil {
 		return ret, err
 	}
@@ -37,7 +37,7 @@ func program(proxy *Nexter) (node, error) {
 		switch proxy.Peek().t {
 		case PIPE:
 			proxy.Pop()
-			right, err := expr(proxy)
+			right, err := comp(proxy)
 			if err != nil {
 				return right, err
 			}
@@ -50,6 +50,41 @@ func program(proxy *Nexter) (node, error) {
 		}
 	}
 	return ret, fmt.Errorf("This shouldn't happen")
+}
+
+func comp(proxy *Nexter) (node, error) {
+	lvalue, err := expr(proxy)
+	if err != nil {
+		return lvalue, err
+	}
+	switch proxy.Peek().t {
+	case LESS:
+		proxy.Pop()
+		rvalue, err := expr(proxy)
+		if err != nil {
+			return rvalue, err
+		}
+		retnode := LessThanNode(lvalue, rvalue)
+		return &retnode, nil
+	case MORE:
+		proxy.Pop()
+		rvalue, err := expr(proxy)
+		if err != nil {
+			return rvalue, err
+		}
+		retnode := GreaterThanNode(lvalue, rvalue)
+		return &retnode, nil
+	case EQUAL:
+		proxy.Pop()
+		rvalue, err := expr(proxy)
+		if err != nil {
+			return rvalue, err
+		}
+		retnode := EqualToNode(lvalue, rvalue)
+		return &retnode, nil
+	default:
+		return lvalue, nil
+	}
 }
 
 func expr(proxy *Nexter) (node, error) {
@@ -114,44 +149,55 @@ func term(proxy *Nexter) (node, error) {
 }
 
 func atom(proxy *Nexter) (node, error) {
-	rvalue, err := literal(proxy)
-	if err != nil {
-		return rvalue, err
-	}
-
-	if proxy.Peek().t != DICE {
-		return rvalue, nil
-	}
-
-	proxy.Pop()
 	lvalue, err := literal(proxy)
 	if err != nil {
 		return lvalue, err
 	}
-	if proxy.Peek().t != KEEP {
-		return &DiceNode{
-			number: rvalue,
-			size:   lvalue,
-		}, nil
-	}
-	proxy.Pop()
-	kvalue, err := literal(proxy)
-	if err != nil {
-		return kvalue, err
-	}
 
-	return &DiceKeepNode{
-		number: rvalue,
-		size:   lvalue,
-		keep:   kvalue,
-	}, nil
+	switch proxy.Peek().t {
+	case DICE:
+		proxy.Pop()
+		rvalue, err := literal(proxy)
+		if err != nil {
+			return rvalue, err
+		}
+		if proxy.Peek().t != KEEP {
+			return &DiceNode{
+				number: lvalue,
+				size:   rvalue,
+			}, nil
+		}
+		proxy.Pop()
+		kvalue, err := literal(proxy)
+		if err != nil {
+			return kvalue, err
+		}
+
+		return &DiceKeepNode{
+			number: lvalue,
+			size:   rvalue,
+			keep:   kvalue,
+		}, nil
+	case COLON:
+		proxy.Pop()
+		rvalue, err := literal(proxy)
+		if err != nil {
+			return rvalue, err
+		}
+		return &ColonNode{
+			start: lvalue,
+			end:   rvalue,
+		}, nil
+	default:
+		return lvalue, nil
+	}
 }
 
 func literal(proxy *Nexter) (node, error) {
 	switch proxy.Peek().t {
 	case LPAREN:
 		proxy.Pop()
-		val, err := expr(proxy)
+		val, err := comp(proxy)
 		if err != nil {
 			return val, err
 		}
@@ -188,7 +234,7 @@ func list(proxy *Nexter) (node, error) {
 		ret := arrayNode(nodes)
 		return &ret, nil
 	} else {
-		val, err := expr(proxy)
+		val, err := comp(proxy)
 		if err != nil {
 			return &ValueNode{}, err
 		}
@@ -199,7 +245,7 @@ func list(proxy *Nexter) (node, error) {
 				return val, fmt.Errorf("Expected ',' or ']', found '%v'", proxy.Peek().t)
 			}
 			proxy.Pop()
-			val, err := expr(proxy)
+			val, err := comp(proxy)
 			if err != nil {
 				return val, err
 			}

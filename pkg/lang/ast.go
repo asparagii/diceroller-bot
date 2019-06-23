@@ -81,7 +81,7 @@ func (p *PipeNode) evaluate(m Memory) (Object, error) {
 	if err != nil {
 		return Object{}, err
 	}
-	p.leftRepresentation = leftResult.String()
+	p.leftRepresentation = p.left.String()
 	var newMemory Memory
 	switch leftResult.Type {
 	case NUMBERVALUE:
@@ -111,6 +111,8 @@ func (p *PipeNode) evaluate(m Memory) (Object, error) {
 
 func (p PipeNode) String() string {
 	var builder strings.Builder
+	builder.WriteString(p.leftRepresentation)
+	builder.WriteString(" => ")
 	builder.WriteString("[ ")
 	if len(p.rightRepresentation) > 0 {
 		builder.WriteString(p.rightRepresentation[0])
@@ -248,4 +250,105 @@ func (n *DiceNode) evaluate(m Memory) (Object, error) {
 
 func (n DiceNode) String() string {
 	return n.representation
+}
+
+type ColonNode struct {
+	start  node
+	end    node
+	result Object
+}
+
+func (n *ColonNode) evaluate(m Memory) (Object, error) {
+	start, err := n.start.evaluate(m)
+	if err != nil {
+		return start, err
+	}
+	if start.Type != NUMBERVALUE {
+		return start, fmt.Errorf("Unexpected object of type %v as start of range", start.Type)
+	}
+
+	end, err := n.end.evaluate(m)
+	if err != nil {
+		return end, err
+	}
+	if end.Type != NUMBERVALUE {
+		return end, fmt.Errorf("Unexpected object of type %v as end of range", end.Type)
+	}
+
+	var (
+		s = start.Value.(int)
+		e = end.Value.(int)
+	)
+
+	if e-s < 0 {
+		return start, fmt.Errorf("Invalid range: 'start' cannot be less than 'end'")
+	}
+
+	result := make([]Object, e-s)
+	for i := 0; i < e-s; i++ {
+		result[i] = Number(s + i)
+	}
+	n.result = Array(result)
+	return n.result, nil
+}
+
+func (n ColonNode) String() string {
+	return n.result.String()
+}
+
+type ComparisonNode struct {
+	left                    node
+	right                   node
+	operation               func(a, b Object) (Object, error)
+	operationRepresentation string
+	representation          string
+}
+
+func (n *ComparisonNode) evaluate(memory Memory) (Object, error) {
+	left, err := n.left.evaluate(memory)
+	if err != nil {
+		return left, err
+	}
+
+	right, err := n.right.evaluate(memory)
+	if err != nil {
+		return right, err
+	}
+
+	result, err := n.operation(left, right)
+	if err != nil {
+		return result, err
+	}
+
+	n.representation = fmt.Sprintf("%v %s %v", n.left, n.operationRepresentation, n.right)
+	return result, nil
+}
+
+func (n ComparisonNode) String() string {
+	return n.representation
+}
+
+func LessThanNode(left, right node) ComparisonNode {
+	return ComparisonNode{
+		left:                    left,
+		right:                   right,
+		operation:               Less,
+		operationRepresentation: "<",
+	}
+}
+func GreaterThanNode(left, right node) ComparisonNode {
+	return ComparisonNode{
+		left:                    left,
+		right:                   right,
+		operation:               More,
+		operationRepresentation: ">",
+	}
+}
+func EqualToNode(left, right node) ComparisonNode {
+	return ComparisonNode{
+		left:                    left,
+		right:                   right,
+		operation:               Equal,
+		operationRepresentation: "=",
+	}
 }

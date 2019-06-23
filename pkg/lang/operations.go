@@ -105,3 +105,48 @@ func RollKeep(number, size, keep Object) (Object, string, error) {
 
 	return Number(sum), fmt.Sprintf("(%s)", repr), nil
 }
+
+func Less(a, b Object) (Object, error) {
+	if a.Type != NUMBERVALUE {
+		return Object{}, fmt.Errorf("Unexpected type for operand '<': %v", a.Type)
+	}
+
+	if b.Type != NUMBERVALUE {
+		return Object{}, fmt.Errorf("Unexpected type for operand '<': %v", b.Type)
+	}
+
+	left := a.Value.(int)
+	right := b.Value.(int)
+
+	return Boolean(left < right), nil
+}
+
+func More(a, b Object) (Object, error) {
+	if a.Type != NUMBERVALUE {
+		return Object{}, fmt.Errorf("Unexpected type for operand '>': %v", a.Type)
+	}
+
+	if b.Type != NUMBERVALUE {
+		return Object{}, fmt.Errorf("Unexpected type for operand '>': %v", b.Type)
+	}
+
+	left := a.Value.(int)
+	right := b.Value.(int)
+
+	return Boolean(left > right), nil
+}
+
+func Equal(a, b Object) (Object, error) {
+	if a.Type != NUMBERVALUE {
+		return Object{}, fmt.Errorf("Unexpected type for operand '=': %v", a.Type)
+	}
+
+	if b.Type != NUMBERVALUE {
+		return Object{}, fmt.Errorf("Unexpected type for operand '=': %v", b.Type)
+	}
+
+	left := a.Value.(int)
+	right := b.Value.(int)
+
+	return Boolean(left == right), nil
+}

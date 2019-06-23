@@ -26,6 +26,13 @@ func Array(elements []Object) Object {
 	return Object{Value: elements, Type: ARRAYVALUE}
 }
 
+func Boolean(value bool) Object {
+	return Object{
+		Value: value,
+		Type:  BOOLEANVALUE,
+	}
+}
+
 func (o Object) String() string {
 	switch o.Type {
 	case NUMBERVALUE:
@@ -43,6 +50,12 @@ func (o Object) String() string {
 		}
 		builder.WriteString(" ]")
 		return builder.String()
+	case BOOLEANVALUE:
+		if o.Value.(bool) {
+			return "true"
+		} else {
+			return "false"
+		}
 	default:
 		return "Error: Not implemented!"
 	}

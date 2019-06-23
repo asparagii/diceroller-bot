@@ -27,41 +27,47 @@ const (
 	LISTSEPARATOR
 	DOLLAR
 	PIPE
+	COLON
+	LESS
+	MORE
+	EQUAL
 	INVALID
 )
 
 func (t TokenType) String() string {
 	switch t {
 	case NUMBER:
-		return "NUMBER"
+		return "number"
 	case SUM:
-		return "SUM"
+		return "+"
 	case SUB:
-		return "SUB"
+		return "-"
 	case DICE:
-		return "DICE"
+		return "dice"
 	case INVALID:
 		return "INVALID"
 	case MUL:
-		return "MUL"
+		return "*"
 	case EOF:
 		return "EOF"
 	case KEEP:
-		return "KEEP"
+		return "keep"
 	case RPAREN:
-		return "RPAREN"
+		return "closed bracket"
 	case LPAREN:
-		return "LPAREN"
+		return "open bracket"
 	case RARRAYPAREN:
-		return "RARRAYPAREN"
+		return "closed square bracket"
 	case LARRAYPAREN:
-		return "LARRAYPAREN"
+		return "open square bracket"
 	case LISTSEPARATOR:
-		return "LISTSEPARATOR"
+		return "comma"
 	case DOLLAR:
-		return "DOLLAR"
+		return "$"
 	case PIPE:
-		return "PIPE"
+		return "|"
+	case COLON:
+		return ":"
 	default:
 		return "<ERROR: Unexpected token type>"
 	}
@@ -177,8 +183,20 @@ func lexNeutral(l *Lexer) StateFn {
 	case ch == '$':
 		popEmitSingle(DOLLAR, l)
 		return lexNeutral
+	case ch == ':':
+		popEmitSingle(COLON, l)
+		return lexNeutral
 	case ch == '|':
 		popEmitSingle(PIPE, l)
+		return lexNeutral
+	case ch == '<':
+		popEmitSingle(LESS, l)
+		return lexNeutral
+	case ch == '>':
+		popEmitSingle(MORE, l)
+		return lexNeutral
+	case ch == '=':
+		popEmitSingle(EQUAL, l)
 		return lexNeutral
 	default:
 		return lexUnexpected
