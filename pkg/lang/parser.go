@@ -5,10 +5,10 @@ import (
 	"strconv"
 )
 
-func Start(input string) (Object, error) {
+func Start(input string) (Object, string, error) {
 	ast, err := Parse(input)
 	if err != nil {
-		return Object{}, err
+		return Object{}, "", err
 	}
 	return Interpret(ast)
 }
@@ -41,7 +41,10 @@ func program(proxy *Nexter) (node, error) {
 			if err != nil {
 				return right, err
 			}
-			ret = PipeNode(ret, right)
+			ret = &PipeNode{
+				left:  ret,
+				right: right,
+			}
 		default:
 			return ret, nil
 		}
@@ -63,14 +66,20 @@ func expr(proxy *Nexter) (node, error) {
 			if err != nil {
 				return lvalue, err
 			}
-			lvalue = SumNode(lvalue, rvalue)
+			lvalue = &SumNode{
+				left:  lvalue,
+				right: rvalue,
+			}
 		case SUB:
 			proxy.Pop()
 			rvalue, err := term(proxy)
 			if err != nil {
 				return lvalue, err
 			}
-			lvalue = SubtractNode(lvalue, rvalue)
+			lvalue = &SubtractNode{
+				left:  lvalue,
+				right: rvalue,
+			}
 		default:
 			return lvalue, nil
 		}
@@ -93,7 +102,10 @@ func term(proxy *Nexter) (node, error) {
 			if err != nil {
 				return lvalue, err
 			}
-			lvalue = MultiplyNode(lvalue, rvalue)
+			lvalue = &MultiplyNode{
+				left:  lvalue,
+				right: rvalue,
+			}
 		default:
 			return lvalue, nil
 		}
@@ -117,7 +129,10 @@ func atom(proxy *Nexter) (node, error) {
 		return lvalue, err
 	}
 	if proxy.Peek().t != KEEP {
-		return DiceNode(rvalue, lvalue), nil
+		return &DiceNode{
+			number: rvalue,
+			size:   lvalue,
+		}, nil
 	}
 	proxy.Pop()
 	kvalue, err := literal(proxy)
@@ -125,7 +140,11 @@ func atom(proxy *Nexter) (node, error) {
 		return kvalue, err
 	}
 
-	return DiceKeepNode(rvalue, lvalue, kvalue), nil
+	return &DiceKeepNode{
+		number: rvalue,
+		size:   lvalue,
+		keep:   kvalue,
+	}, nil
 }
 
 func literal(proxy *Nexter) (node, error) {
@@ -136,6 +155,10 @@ func literal(proxy *Nexter) (node, error) {
 		if err != nil {
 			return val, err
 		}
+		if proxy.Peek().t != RPAREN {
+			return val, fmt.Errorf("Unmaching parentesis")
+		}
+		proxy.Pop()
 		return val, nil
 	case LARRAYPAREN:
 		proxy.Pop()
@@ -153,20 +176,21 @@ func literal(proxy *Nexter) (node, error) {
 		return val, err
 	case DOLLAR:
 		proxy.Pop()
-		return dollarNode{}, nil
+		return &dollarNode{}, nil
 	default:
-		return valueNode{}, fmt.Errorf("Expected number or expression, found '%s'", proxy.Peek().t)
+		return &ValueNode{}, fmt.Errorf("Expected number or expression, found '%s'", proxy.Peek().t)
 	}
 }
 
 func list(proxy *Nexter) (node, error) {
 	nodes := make([]*node, 0)
 	if proxy.Peek().t == RARRAYPAREN {
-		return arrayNode(nodes), nil
+		ret := arrayNode(nodes)
+		return &ret, nil
 	} else {
 		val, err := expr(proxy)
 		if err != nil {
-			return valueNode{}, err
+			return &ValueNode{}, err
 		}
 		nodes = append(nodes, &val)
 
@@ -179,19 +203,21 @@ func list(proxy *Nexter) (node, error) {
 			if err != nil {
 				return val, err
 			}
-			nodes = append(nodes, &val) //TODO change to tree building
+			nodes = append(nodes, &val)
 		}
-		return arrayNode(nodes), nil
+		ret := arrayNode(nodes)
+		return &ret, nil
 	}
 }
 
 func number(proxy *Nexter) (node, error) {
 	if proxy.Peek().t != NUMBER {
-		return valueNode{}, fmt.Errorf("Expected number, got '%v'", proxy.Peek().value)
+		return &ValueNode{}, fmt.Errorf("Expected number, got '%v'", proxy.Peek().value)
 	}
 	value, err := strconv.Atoi(proxy.Pop().value)
 	if err != nil {
-		return valueNode{}, err
+		return &ValueNode{}, err
 	}
-	return valueNode(Number(value)), nil
+	ret := ValueNode(Number(value))
+	return &ret, nil
 }

@@ -1,5 +1,10 @@
 package lang
 
+import (
+	"fmt"
+	"strings"
+)
+
 type Object struct {
 	Value interface{}
 	Type  ValueType
@@ -21,37 +26,24 @@ func Array(elements []Object) Object {
 	return Object{Value: elements, Type: ARRAYVALUE}
 }
 
-/*
-type ArrayNumber []Value
-
-func (n ArrayNumber) String() string {
-	representations := make([]string, len(n))
-	for i, v := range n {
-		representations[i] = v.String()
-	}
-	return fmt.Sprintf("{ %s }", strings.Join(representations, ", "))
-}
-
-func (n ArrayNumber) Map(f Expression) (ArrayNumber, error) {
-	result := make(ArrayNumber, len(n))
-	for i, v := range n {
-		result[i] = f.Eval(v)
-	}
-	return result, nil
-}
-
-func (n ArrayNumber) Filter(f Expression) (ArrayNumber, error) {
-	var result ArrayNumber
-	for _, v := range n {
-		evaluation := f.Eval(v)
-		if evaluation.Type() != BOOLEANVALUE {
-			return n, fmt.Errorf("Filter expression did not return a boolean value")
+func (o Object) String() string {
+	switch o.Type {
+	case NUMBERVALUE:
+		return fmt.Sprintf("%d", o.Value)
+	case ARRAYVALUE:
+		elements := o.Value.([]Object)
+		var builder strings.Builder
+		builder.WriteString("[ ")
+		if len(elements) > 0 {
+			builder.WriteString((elements)[0].String())
 		}
-
-		if bool(evaluation.(Boolean)) {
-			result = append(result, v)
+		for _, v := range elements[1:] {
+			builder.WriteString(", ")
+			builder.WriteString(v.String())
 		}
+		builder.WriteString(" ]")
+		return builder.String()
+	default:
+		return "Error: Not implemented!"
 	}
-	return result, nil
 }
-*/

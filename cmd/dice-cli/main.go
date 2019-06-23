@@ -49,14 +49,10 @@ func cliFormatter(str string) string {
 }
 
 func compute(expr string) {
-	result, err := lang.Start(expr)
+	result, representation, err := lang.Start(expr)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	} else {
-		//	if result.Properties[lang.TYPE] == lang.NUMBERVALUE {
-		//		fmt.Printf("%v => %d\n", cliFormatter(result.String()), result.(lang.Number).V())
-		//	} else {
-		fmt.Printf("%v\n", result)
-		//}
+		fmt.Printf("%s => %v\n", cliFormatter(representation), result)
 	}
 }

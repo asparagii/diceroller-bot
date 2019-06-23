@@ -1,6 +1,7 @@
 package lang
 
-func Interpret(tree node) (Object, error) {
+func Interpret(tree node) (Object, string, error) {
 	mem := Memory{dollar: &Object{}}
-	return tree.evaluate(mem)
+	result, err := tree.evaluate(mem)
+	return result, tree.String(), err
 }

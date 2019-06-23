@@ -52,34 +52,17 @@ func Multiply(a, b Object) (Object, error) {
 	return Object{}, fmt.Errorf("Error: unknown type")
 }
 
-func Roll(number, size Object) (Object, error) {
-	if number.Type != NUMBERVALUE || size.Type != NUMBERVALUE {
-		return Object{}, fmt.Errorf("Wrong type for roll")
-	}
-	if size.Value.(int) < 1 {
-		return Object{}, fmt.Errorf("Unexpected size '%v'", size)
-	}
-
-	results := make([]int, number.Value.(int))
-	for i := 0; i < number.Value.(int); i++ {
-		tmp := rand.Intn(size.Value.(int)) + 1
-		results[i] = tmp
-	}
-
-	sum := 0
-	for _, v := range results {
-		sum += v
-	}
-	return Number(sum), nil
+func Roll(number, size Object) (Object, string, error) {
+	return RollKeep(number, size, number)
 }
 
-func RollKeep(number, size, keep Object) (Object, error) {
+func RollKeep(number, size, keep Object) (Object, string, error) {
 	if number.Type != NUMBERVALUE || size.Type != NUMBERVALUE || keep.Type != NUMBERVALUE {
-		return Object{}, fmt.Errorf("Wrong type for roll")
+		return Object{}, "", fmt.Errorf("Wrong type for roll")
 	}
 
 	if size.Value.(int) < 1 {
-		return Object{}, fmt.Errorf("Unexpected size '%v'", size)
+		return Object{}, "", fmt.Errorf("Unexpected size '%v'", size)
 	}
 
 	results := make([]int, number.Value.(int))
@@ -119,15 +102,6 @@ func RollKeep(number, size, keep Object) (Object, error) {
 			repr = fmt.Sprintf("%s", singleRepr)
 		}
 	}
-	_ = fmt.Sprintf("(%s)", repr)
-	return Number(sum), nil
-}
 
-func Pipe(a, b Object) (Object, error) {
-	switch a.Type {
-	case ARRAYVALUE:
-		// TODO Add a way to use some kind of local variable ($)
-	default:
-	}
-	return Object{}, fmt.Errorf("Not implemented")
+	return Number(sum), fmt.Sprintf("(%s)", repr), nil
 }
