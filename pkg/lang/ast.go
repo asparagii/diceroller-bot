@@ -112,7 +112,7 @@ func (p *PipeNode) evaluate(m Memory) (Object, error) {
 func (p PipeNode) String() string {
 	var builder strings.Builder
 	builder.WriteString(p.leftRepresentation)
-	builder.WriteString(" => ")
+	builder.WriteString(" => \n")
 	builder.WriteString("[ ")
 	if len(p.rightRepresentation) > 0 {
 		builder.WriteString(p.rightRepresentation[0])
