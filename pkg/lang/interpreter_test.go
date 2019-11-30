@@ -55,7 +55,7 @@ func TestInterpretPipe(t *testing.T) {
 	assert(t, err == nil, "Expected no error, got %v", err)
 	assert(t, result.Type == ARRAYVALUE, "Expected array result, got %v", result.Type)
 	assertArrayEqual(t, result.Value.([]Object), []Object{Number(1), Number(2)})
-	assert(t, strings.Compare(representation, "[ 1, 2 ] => [ 1, 2 ]") == 0, "Representation didn't match")
+	assert(t, strings.Compare(representation, "[ 1, 2 ] => \n[ 1, 2 ]") == 0, "Representation didn't match")
 }
 
 func assertArrayEqual(t *testing.T, a, b []Object) {
