@@ -2,8 +2,8 @@ package main
 
 import (
 	"bufio"
+	"diceroller-bot/lang"
 	"fmt"
-	"github.com/MicheleLambertucci/diceroller-bot/pkg/lang"
 	"github.com/mattn/go-isatty"
 	"math/rand"
 	"os"
