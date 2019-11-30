@@ -1,7 +1,6 @@
 package lang
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 )
@@ -17,7 +16,6 @@ func TestInterpretSum(t *testing.T) {
 	assert(t, err == nil, "Expected no error, got %v", err)
 	assert(t, result.Value == Number(2).Value, "Expected number 2, got %v", result)
 	assert(t, strings.Compare(representation, "1+1") == 0, "Expected '1+1', got %s", representation)
-	fmt.Println(representation)
 }
 
 func TestInterpretSubtract(t *testing.T) {
@@ -57,7 +55,7 @@ func TestInterpretPipe(t *testing.T) {
 	assert(t, err == nil, "Expected no error, got %v", err)
 	assert(t, result.Type == ARRAYVALUE, "Expected array result, got %v", result.Type)
 	assertArrayEqual(t, result.Value.([]Object), []Object{Number(1), Number(2)})
-	assert(t, strings.Compare(representation, "[ 1, 2 ]") == 0, "Representation didn't match")
+	assert(t, strings.Compare(representation, "[ 1, 2 ] => [ 1, 2 ]") == 0, "Representation didn't match")
 }
 
 func assertArrayEqual(t *testing.T, a, b []Object) {
