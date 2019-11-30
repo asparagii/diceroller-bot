@@ -18,6 +18,8 @@ If you want a new feature or want to give some advice, please open an new issue.
 
 `!r (8d12k1+40)*(1-(2+9d4)-3d2)-4` - You got it
 
+`!r [3, 2, 8] | 1d20+$` - You can also pipe commands and create arrays!
+
 ## Installation
 
 ```
