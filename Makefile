@@ -1,7 +1,8 @@
-all: dice-cli dice-bot
+build:
+	go build ./...
 
-dice-cli:
-	pushd cmd/dice-cli && go build 
+install:
+	go install ./...
 
-dice-bot:
-	pushd cmd/dice-bot && go build
+test:
+	go test ./...

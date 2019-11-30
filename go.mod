@@ -1,4 +1,4 @@
-module diceroller-bot
+module github.com/asparagii/diceroller-bot
 
 go 1.13
 

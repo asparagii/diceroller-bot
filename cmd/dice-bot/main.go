@@ -1,9 +1,9 @@
 package main
 
 import (
-	"diceroller-bot/lang"
 	"flag"
 	"fmt"
+	"github.com/asparagii/diceroller-bot/lang"
 	"github.com/bwmarrin/discordgo"
 	"math/rand"
 	"os"
