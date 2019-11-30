@@ -2,27 +2,92 @@ package lang
 
 import (
 	"fmt"
-	"math/rand"
-	"sort"
 	"strconv"
 )
 
-func Parse(expression string) (Value, error) {
+func Start(input string) (Object, string, error) {
+	ast, err := Parse(input)
+	if err != nil {
+		return Object{}, "", err
+	}
+	return Interpret(ast)
+}
+
+func Parse(expression string) (node, error) {
 	token := Lex(expression)
 
 	proxy := Nexter{token: token}
 
 	// Read first value
 	proxy.Init()
-	value, err := expr(&proxy)
+	tree, err := program(&proxy)
 	if proxy.Peek().t != EOF {
-		return value, fmt.Errorf("Unexpected end of message")
-	} else {
-		return value, err
+		return tree, fmt.Errorf("Unexpected end of message")
+	}
+	return tree, err
+}
+
+func program(proxy *Nexter) (node, error) {
+	ret, err := comp(proxy)
+	if err != nil {
+		return ret, err
+	}
+
+	for true {
+		switch proxy.Peek().t {
+		case PIPE:
+			proxy.Pop()
+			right, err := comp(proxy)
+			if err != nil {
+				return right, err
+			}
+			ret = &PipeNode{
+				left:  ret,
+				right: right,
+			}
+		default:
+			return ret, nil
+		}
+	}
+	return ret, fmt.Errorf("This shouldn't happen")
+}
+
+func comp(proxy *Nexter) (node, error) {
+	lvalue, err := expr(proxy)
+	if err != nil {
+		return lvalue, err
+	}
+	switch proxy.Peek().t {
+	case LESS:
+		proxy.Pop()
+		rvalue, err := expr(proxy)
+		if err != nil {
+			return rvalue, err
+		}
+		retnode := LessThanNode(lvalue, rvalue)
+		return &retnode, nil
+	case MORE:
+		proxy.Pop()
+		rvalue, err := expr(proxy)
+		if err != nil {
+			return rvalue, err
+		}
+		retnode := GreaterThanNode(lvalue, rvalue)
+		return &retnode, nil
+	case EQUAL:
+		proxy.Pop()
+		rvalue, err := expr(proxy)
+		if err != nil {
+			return rvalue, err
+		}
+		retnode := EqualToNode(lvalue, rvalue)
+		return &retnode, nil
+	default:
+		return lvalue, nil
 	}
 }
 
-func expr(proxy *Nexter) (Value, error) {
+func expr(proxy *Nexter) (node, error) {
 	lvalue, err := term(proxy)
 	if err != nil {
 		return lvalue, err
@@ -36,9 +101,9 @@ func expr(proxy *Nexter) (Value, error) {
 			if err != nil {
 				return lvalue, err
 			}
-			lvalue, err = lvalue.Add(rvalue)
-			if err != nil {
-				return lvalue, err
+			lvalue = &SumNode{
+				left:  lvalue,
+				right: rvalue,
 			}
 		case SUB:
 			proxy.Pop()
@@ -46,22 +111,18 @@ func expr(proxy *Nexter) (Value, error) {
 			if err != nil {
 				return lvalue, err
 			}
-			invertedvalue, err := rvalue.Invert()
-			if err != nil {
-				return invertedvalue, err
-			}
-			lvalue, err = lvalue.Add(invertedvalue)
-			if err != nil {
-				return lvalue, err
+			lvalue = &SubtractNode{
+				left:  lvalue,
+				right: rvalue,
 			}
 		default:
 			return lvalue, nil
 		}
 	}
-	return lvalue, fmt.Errorf("Unexpected end of the parser")
+	return lvalue, fmt.Errorf("Unexpected end of the message")
 }
 
-func term(proxy *Nexter) (Value, error) {
+func term(proxy *Nexter) (node, error) {
 	lvalue, err := atom(proxy)
 
 	if err != nil {
@@ -76,9 +137,9 @@ func term(proxy *Nexter) (Value, error) {
 			if err != nil {
 				return lvalue, err
 			}
-			lvalue, err = lvalue.Mul(rvalue)
-			if err != nil {
-				return lvalue, err
+			lvalue = &MultiplyNode{
+				left:  lvalue,
+				right: rvalue,
 			}
 		default:
 			return lvalue, nil
@@ -87,119 +148,122 @@ func term(proxy *Nexter) (Value, error) {
 	return lvalue, fmt.Errorf("Unexpected end of the parser")
 }
 
-func atom(proxy *Nexter) (Value, error) {
-	rvalue, err := literal(proxy)
-	if err != nil {
-		return rvalue, err
-	} else if rvalue.Type() != NUMBERVALUE {
-		return rvalue, fmt.Errorf("Expected number, got %v", rvalue.Type())
-	}
-
-	if proxy.Peek().t != DICE {
-		return rvalue, nil
-	}
-
-	proxy.Pop()
+func atom(proxy *Nexter) (node, error) {
 	lvalue, err := literal(proxy)
 	if err != nil {
 		return lvalue, err
-	} else if rvalue.Type() != NUMBERVALUE {
-		return rvalue, fmt.Errorf("Expected number, got %v", rvalue.Type())
-	}
-	if proxy.Peek().t != KEEP {
-		return roll(rvalue.(Number), lvalue.(Number), rvalue.(Number))
-	}
-	proxy.Pop()
-	kvalue, err := literal(proxy)
-	if err != nil {
-		return kvalue, err
-	} else if kvalue.Type() != NUMBERVALUE {
-		return kvalue, fmt.Errorf("Expected number, got %v", kvalue.Type())
 	}
 
-	return roll(rvalue.(Number), lvalue.(Number), kvalue.(Number))
+	switch proxy.Peek().t {
+	case DICE:
+		proxy.Pop()
+		rvalue, err := literal(proxy)
+		if err != nil {
+			return rvalue, err
+		}
+		if proxy.Peek().t != KEEP {
+			return &DiceNode{
+				number: lvalue,
+				size:   rvalue,
+			}, nil
+		}
+		proxy.Pop()
+		kvalue, err := literal(proxy)
+		if err != nil {
+			return kvalue, err
+		}
+
+		return &DiceKeepNode{
+			number: lvalue,
+			size:   rvalue,
+			keep:   kvalue,
+		}, nil
+	case COLON:
+		proxy.Pop()
+		rvalue, err := literal(proxy)
+		if err != nil {
+			return rvalue, err
+		}
+		return &ColonNode{
+			start: lvalue,
+			end:   rvalue,
+		}, nil
+	default:
+		return lvalue, nil
+	}
 }
 
-func literal(proxy *Nexter) (Value, error) {
+func literal(proxy *Nexter) (node, error) {
 	switch proxy.Peek().t {
 	case LPAREN:
 		proxy.Pop()
-		val, err := expr(proxy)
+		val, err := comp(proxy)
 		if err != nil {
 			return val, err
 		}
 		if proxy.Peek().t != RPAREN {
-			return val, fmt.Errorf("Expected ')', found '%s'", proxy.Peek().value)
+			return val, fmt.Errorf("Unmaching parentesis")
 		}
 		proxy.Pop()
-		if val.Type() != NUMBERVALUE {
-			return val, fmt.Errorf("Expected number, found %v", val.Type())
+		return val, nil
+	case LARRAYPAREN:
+		proxy.Pop()
+		val, err := list(proxy)
+		if err != nil {
+			return val, err
 		}
-		return Number{val: val.(Number).V(), repr: fmt.Sprintf("(%v)", val)}, nil
+		if proxy.Peek().t != RARRAYPAREN {
+			return val, fmt.Errorf("Error: expected end of list, found '%v'", val)
+		}
+		proxy.Pop()
+		return val, nil
 	case NUMBER:
 		val, err := number(proxy)
 		return val, err
+	case DOLLAR:
+		proxy.Pop()
+		return &dollarNode{}, nil
 	default:
-		return Number{}, fmt.Errorf("Expected number or expression, found '%s'", proxy.Peek().t)
+		return &ValueNode{}, fmt.Errorf("Expected number or expression, found '%s'", proxy.Peek().t)
 	}
-
 }
 
-func number(proxy *Nexter) (Number, error) {
+func list(proxy *Nexter) (node, error) {
+	nodes := make([]*node, 0)
+	if proxy.Peek().t == RARRAYPAREN {
+		ret := arrayNode(nodes)
+		return &ret, nil
+	} else {
+		val, err := comp(proxy)
+		if err != nil {
+			return &ValueNode{}, err
+		}
+		nodes = append(nodes, &val)
+
+		for proxy.Peek().t != RARRAYPAREN {
+			if proxy.Peek().t != LISTSEPARATOR {
+				return val, fmt.Errorf("Expected ',' or ']', found '%v'", proxy.Peek().t)
+			}
+			proxy.Pop()
+			val, err := comp(proxy)
+			if err != nil {
+				return val, err
+			}
+			nodes = append(nodes, &val)
+		}
+		ret := arrayNode(nodes)
+		return &ret, nil
+	}
+}
+
+func number(proxy *Nexter) (node, error) {
 	if proxy.Peek().t != NUMBER {
-		return Number{}, fmt.Errorf("Expected number, got '%v'", proxy.Peek().value)
+		return &ValueNode{}, fmt.Errorf("Expected number, got '%v'", proxy.Peek().value)
 	}
 	value, err := strconv.Atoi(proxy.Pop().value)
 	if err != nil {
-		return Number{}, err
+		return &ValueNode{}, err
 	}
-	var ret Number
-	ret.Init(value)
-	return ret, nil
-}
-
-func roll(number, size, keep Number) (Number, error) {
-	if size.V() < 1 {
-		return number, fmt.Errorf("Unexpected size '%v'", size)
-	}
-
-	results := make([]int, number.V())
-	for i := 0; i < number.V(); i++ {
-		tmp := rand.Intn(size.V()) + 1
-		results[i] = tmp
-	}
-	sorted := sort.IntSlice(results)
-	sort.Sort(sorted)
-
-	repr := ""
-	if number.V()-keep.V() > 0 {
-		for _, v := range results[:number.V()-keep.V()] {
-			if len(repr) > 0 {
-				repr = fmt.Sprintf("%s+%v", repr, v)
-			} else {
-				repr = fmt.Sprintf("%v", v)
-			}
-		}
-		repr = fmt.Sprintf("~~%s~~", repr)
-	}
-	sum := 0
-	lowerBound := number.V() - keep.V()
-	if lowerBound < 0 {
-		lowerBound = 0
-	}
-	for _, v := range results[lowerBound:number.V()] {
-		sum += v
-		singleRepr := fmt.Sprintf("%v", v)
-		if v == size.V() {
-			singleRepr = fmt.Sprintf("**%s**", singleRepr)
-		}
-
-		if len(repr) > 0 {
-			repr = fmt.Sprintf("%s+%s", repr, singleRepr)
-		} else {
-			repr = fmt.Sprintf("%s", singleRepr)
-		}
-	}
-
-	return Number{val: sum, repr: fmt.Sprintf("(%s)", repr)}, nil
+	ret := ValueNode(Number(value))
+	return &ret, nil
 }

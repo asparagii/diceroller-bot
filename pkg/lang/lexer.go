@@ -22,31 +22,52 @@ const (
 	KEEP
 	RPAREN
 	LPAREN
+	RARRAYPAREN
+	LARRAYPAREN
+	LISTSEPARATOR
+	DOLLAR
+	PIPE
+	COLON
+	LESS
+	MORE
+	EQUAL
 	INVALID
 )
 
 func (t TokenType) String() string {
 	switch t {
 	case NUMBER:
-		return "NUMBER"
+		return "number"
 	case SUM:
-		return "SUM"
+		return "+"
 	case SUB:
-		return "SUB"
+		return "-"
 	case DICE:
-		return "DICE"
+		return "dice"
 	case INVALID:
 		return "INVALID"
 	case MUL:
-		return "MUL"
+		return "*"
 	case EOF:
 		return "EOF"
 	case KEEP:
-		return "KEEP"
+		return "keep"
 	case RPAREN:
-		return "RPAREN"
+		return "closed bracket"
 	case LPAREN:
-		return "LPAREN"
+		return "open bracket"
+	case RARRAYPAREN:
+		return "closed square bracket"
+	case LARRAYPAREN:
+		return "open square bracket"
+	case LISTSEPARATOR:
+		return "comma"
+	case DOLLAR:
+		return "$"
+	case PIPE:
+		return "|"
+	case COLON:
+		return ":"
 	default:
 		return "<ERROR: Unexpected token type>"
 	}
@@ -149,6 +170,33 @@ func lexNeutral(l *Lexer) StateFn {
 		return lexNeutral
 	case ch == ')':
 		popEmitSingle(RPAREN, l)
+		return lexNeutral
+	case ch == '[':
+		popEmitSingle(LARRAYPAREN, l)
+		return lexNeutral
+	case ch == ']':
+		popEmitSingle(RARRAYPAREN, l)
+		return lexNeutral
+	case ch == ',':
+		popEmitSingle(LISTSEPARATOR, l)
+		return lexNeutral
+	case ch == '$':
+		popEmitSingle(DOLLAR, l)
+		return lexNeutral
+	case ch == ':':
+		popEmitSingle(COLON, l)
+		return lexNeutral
+	case ch == '|':
+		popEmitSingle(PIPE, l)
+		return lexNeutral
+	case ch == '<':
+		popEmitSingle(LESS, l)
+		return lexNeutral
+	case ch == '>':
+		popEmitSingle(MORE, l)
+		return lexNeutral
+	case ch == '=':
+		popEmitSingle(EQUAL, l)
 		return lexNeutral
 	default:
 		return lexUnexpected
