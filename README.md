@@ -23,7 +23,7 @@ If you want a new feature or want to give some advice, please open an new issue.
 ## Installation
 
 ```
-go get github.com/MicheleLambertucci/diceroller-bot/...
+go get github.com/asparagii/diceroller-bot/...
 ```
 
 Both `dice-bot` and `dice-cli` will be installed in your $GOPATH/bin directory. Add the folder to your PATH if you want to launch the programs from anywhere.
