@@ -3,23 +3,32 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"github.com/asparagii/diceroller-bot/lang"
-	"github.com/mattn/go-isatty"
 	"math/rand"
 	"os"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/asparagii/diceroller-bot/lang"
+	"github.com/mattn/go-isatty"
 )
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
+
+	if len(os.Args) > 1 {
+		// process single input from args and exit
+		inputProgram := os.Args[1]
+		compute(inputProgram)
+		return
+	}
+
 	scanner := bufio.NewScanner(os.Stdin)
 	var inputProgram string
 	if isatty.IsTerminal(os.Stdin.Fd()) {
 		fmt.Println("Welcome to dicelang interactive prompt")
 		fmt.Println("Type 'exit' or 'quit' to exit")
-		for true {
+		for {
 			fmt.Print("> ")
 			scanner.Scan()
 			inputProgram = scanner.Text()
@@ -30,7 +39,7 @@ func main() {
 			compute(inputProgram)
 		}
 	} else {
-		for true {
+		for {
 			scanner.Scan()
 			inputProgram = scanner.Text()
 			compute(inputProgram)
