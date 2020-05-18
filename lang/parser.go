@@ -27,13 +27,28 @@ func Parse(expression string) (node, error) {
 	return tree, err
 }
 
+///
+// Grammar definition:
+//
+//	PROGRAM := COMP (\| COMP)*
+//	COMP := EXPR ([\<\>\=] EXPR)?
+//	EXPR := TERM ([\+\-] TERM)*
+//	TERM := ATOM (\* ATOM)*
+//	ATOM := LITERAL ( d LITERAL ( k LITERAL )? )?
+//	LITERAL := [( \(COMP\) )( \[LIST\] )(NUMBER)(DOLLAR)]
+//	LIST := COMP ( \, COMP )*
+//	NUMBER := [1234567890]+
+//	DOLLAR := \$
+//
+///
+
 func program(proxy *Nexter) (node, error) {
 	ret, err := comp(proxy)
 	if err != nil {
 		return ret, err
 	}
 
-	for true {
+	for {
 		switch proxy.Peek().t {
 		case PIPE:
 			proxy.Pop()
@@ -49,7 +64,6 @@ func program(proxy *Nexter) (node, error) {
 			return ret, nil
 		}
 	}
-	return ret, fmt.Errorf("This shouldn't happen")
 }
 
 func comp(proxy *Nexter) (node, error) {
@@ -93,7 +107,7 @@ func expr(proxy *Nexter) (node, error) {
 		return lvalue, err
 	}
 
-	for true {
+	for {
 		switch proxy.Peek().t {
 		case SUM:
 			proxy.Pop()
@@ -119,7 +133,6 @@ func expr(proxy *Nexter) (node, error) {
 			return lvalue, nil
 		}
 	}
-	return lvalue, fmt.Errorf("Unexpected end of the message")
 }
 
 func term(proxy *Nexter) (node, error) {
@@ -129,7 +142,7 @@ func term(proxy *Nexter) (node, error) {
 		return lvalue, err
 	}
 
-	for true {
+	for {
 		switch proxy.Peek().t {
 		case MUL:
 			proxy.Pop()
@@ -145,7 +158,6 @@ func term(proxy *Nexter) (node, error) {
 			return lvalue, nil
 		}
 	}
-	return lvalue, fmt.Errorf("Unexpected end of the parser")
 }
 
 func atom(proxy *Nexter) (node, error) {
