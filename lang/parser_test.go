@@ -7,7 +7,7 @@ import (
 func TestParseParentesis(t *testing.T) {
 	ast, err := Parse("1*(2+2)")
 	assert(t, err == nil, "Expected no error, got %v", err)
-	root, ok := ast.(*MultiplyNode)
+	root, ok := ast.Value 
 	assert(t, ok, "Expected root of type MultiplyNode, found %T", ast)
 	_, ok = root.left.(*ValueNode)
 	assert(t, ok, "Expected root of type ValueNode, found %T", root.left)

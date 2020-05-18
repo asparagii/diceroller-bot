@@ -13,7 +13,7 @@ func Start(input string) (Object, string, error) {
 	return Interpret(ast)
 }
 
-func Parse(expression string) (node, error) {
+func Parse(expression string) (*Node, error) {
 	token := Lex(expression)
 
 	proxy := Nexter{token: token}
@@ -42,7 +42,7 @@ func Parse(expression string) (node, error) {
 //
 ///
 
-func program(proxy *Nexter) (node, error) {
+func program(proxy *Nexter) (*Node, error) {
 	ret, err := comp(proxy)
 	if err != nil {
 		return ret, err
@@ -56,9 +56,10 @@ func program(proxy *Nexter) (node, error) {
 			if err != nil {
 				return right, err
 			}
-			ret = &PipeNode{
-				left:  ret,
-				right: right,
+			ret = &Node{
+				Value: PipeNode,
+				Left:  ret,
+				Right: right,
 			}
 		default:
 			return ret, nil
@@ -66,7 +67,7 @@ func program(proxy *Nexter) (node, error) {
 	}
 }
 
-func comp(proxy *Nexter) (node, error) {
+func comp(proxy *Nexter) (*Node, error) {
 	lvalue, err := expr(proxy)
 	if err != nil {
 		return lvalue, err
@@ -78,30 +79,40 @@ func comp(proxy *Nexter) (node, error) {
 		if err != nil {
 			return rvalue, err
 		}
-		retnode := LessThanNode(lvalue, rvalue)
-		return &retnode, nil
+		return &Node{
+			Value: LessThanNode,
+			Left:  lvalue,
+			Right: rvalue,
+		}, nil
 	case MORE:
 		proxy.Pop()
 		rvalue, err := expr(proxy)
 		if err != nil {
 			return rvalue, err
 		}
-		retnode := GreaterThanNode(lvalue, rvalue)
-		return &retnode, nil
+
+		return &Node{
+			Value: MoreThanNode,
+			Left:  lvalue,
+			Right: rvalue,
+		}, nil
 	case EQUAL:
 		proxy.Pop()
 		rvalue, err := expr(proxy)
 		if err != nil {
 			return rvalue, err
 		}
-		retnode := EqualToNode(lvalue, rvalue)
-		return &retnode, nil
+		return &Node{
+			Value: EqualNode,
+			Left:  lvalue,
+			Right: rvalue,
+		}, nil
 	default:
 		return lvalue, nil
 	}
 }
 
-func expr(proxy *Nexter) (node, error) {
+func expr(proxy *Nexter) (*Node, error) {
 	lvalue, err := term(proxy)
 	if err != nil {
 		return lvalue, err
@@ -115,9 +126,10 @@ func expr(proxy *Nexter) (node, error) {
 			if err != nil {
 				return lvalue, err
 			}
-			lvalue = &SumNode{
-				left:  lvalue,
-				right: rvalue,
+			lvalue = &Node{
+				Value: SumNode,
+				Right: rvalue,
+				Left:  lvalue,
 			}
 		case SUB:
 			proxy.Pop()
@@ -125,9 +137,10 @@ func expr(proxy *Nexter) (node, error) {
 			if err != nil {
 				return lvalue, err
 			}
-			lvalue = &SubtractNode{
-				left:  lvalue,
-				right: rvalue,
+			lvalue = &Node{
+				Value: SubtractNode,
+				Left:  lvalue,
+				Right: rvalue,
 			}
 		default:
 			return lvalue, nil
@@ -135,7 +148,7 @@ func expr(proxy *Nexter) (node, error) {
 	}
 }
 
-func term(proxy *Nexter) (node, error) {
+func term(proxy *Nexter) (*Node, error) {
 	lvalue, err := atom(proxy)
 
 	if err != nil {
@@ -150,9 +163,10 @@ func term(proxy *Nexter) (node, error) {
 			if err != nil {
 				return lvalue, err
 			}
-			lvalue = &MultiplyNode{
-				left:  lvalue,
-				right: rvalue,
+			lvalue = &Node{
+				Value: MultiplyNode,
+				Left:  lvalue,
+				Right: rvalue,
 			}
 		default:
 			return lvalue, nil
@@ -160,7 +174,7 @@ func term(proxy *Nexter) (node, error) {
 	}
 }
 
-func atom(proxy *Nexter) (node, error) {
+func atom(proxy *Nexter) (*Node, error) {
 	lvalue, err := literal(proxy)
 	if err != nil {
 		return lvalue, err
@@ -173,22 +187,10 @@ func atom(proxy *Nexter) (node, error) {
 		if err != nil {
 			return rvalue, err
 		}
-		if proxy.Peek().t != KEEP {
-			return &DiceNode{
-				number: lvalue,
-				size:   rvalue,
-			}, nil
-		}
-		proxy.Pop()
-		kvalue, err := literal(proxy)
-		if err != nil {
-			return kvalue, err
-		}
-
-		return &DiceKeepNode{
-			number: lvalue,
-			size:   rvalue,
-			keep:   kvalue,
+		return &Node{
+			Value: DiceNode,
+			Left:  lvalue,
+			Right: rvalue,
 		}, nil
 	case COLON:
 		proxy.Pop()
@@ -196,16 +198,17 @@ func atom(proxy *Nexter) (node, error) {
 		if err != nil {
 			return rvalue, err
 		}
-		return &ColonNode{
-			start: lvalue,
-			end:   rvalue,
+		return &Node{
+			Value: ColonNode,
+			Left:  lvalue,
+			Right: rvalue,
 		}, nil
 	default:
 		return lvalue, nil
 	}
 }
 
-func literal(proxy *Nexter) (node, error) {
+func literal(proxy *Nexter) (*Node, error) {
 	switch proxy.Peek().t {
 	case LPAREN:
 		proxy.Pop()
@@ -234,14 +237,20 @@ func literal(proxy *Nexter) (node, error) {
 		return val, err
 	case DOLLAR:
 		proxy.Pop()
-		return &dollarNode{}, nil
+		return &Node{Value: DollarNode}, nil
 	default:
-		return &ValueNode{}, fmt.Errorf("Expected number or expression, found '%s'", proxy.Peek().t)
+		return &Node{}, fmt.Errorf("Expected number or expression, found '%s'", proxy.Peek().t)
 	}
 }
 
-func list(proxy *Nexter) (node, error) {
-	nodes := make([]*node, 0)
+func list(proxy *Nexter) (*Node, error) {
+	// what shall we do with the array node?
+	// The goal here is to have a binary tree as parser result
+	// Maybe we need to introduce an array terminator of some sort,
+	// representing a nil element or something
+	// Yup that seems the way to go
+
+	nodes := make([]*Node, 0)
 	if proxy.Peek().t == RARRAYPAREN {
 		ret := arrayNode(nodes)
 		return &ret, nil
